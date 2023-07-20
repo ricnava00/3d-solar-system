@@ -1,10 +1,13 @@
 #include "Starter.hpp"
 #include "Planet.hpp"
+#include "Button.hpp"
+#include "ScrollButton.hpp"
+#include "ScrollKnob.hpp"
+#include "ButtonMaker.hpp"
 #include "Controller.hpp"
 #include <glm/gtx/string_cast.hpp>
 
-// #include "TextMaker.hpp"
-// #include "ButtonMaker.hpp"
+using namespace std::placeholders;
 
 struct UniformBufferObject {
 	alignas(16) glm::mat4 mvpMat; // model view projection matrix
@@ -49,7 +52,7 @@ class SolarSystem3D : public BaseProject {
 
 	float Ar; // current aspect ratio
 
-	// TextMaker txt;
+	TextMaker txt;
 
 	DescriptorSetLayout DSL; // descriptor layout
 	VertexDescriptor VD; // vertex format
@@ -80,6 +83,53 @@ class SolarSystem3D : public BaseProject {
 	Planet neptune{earth_eqradius, earth_majaxis, earth_rottime, earth_revtime, "neptune"};
 
 	std::vector<Planet *> planets{&mercury, &venus, &earth, &mars, &jupiter, &saturn, &uranus, &neptune};
+	std::vector<std::reference_wrapper<Button>> buttons;
+
+	bool exampleToggleableProperty=false;
+	float exampleValue=1.0f;
+
+	static void multiplyAppendAndUpdateText(Button& button, Button& targetButton, float *value, float factor, std::string append)
+	{
+		std::stringstream stream;
+		std::cout << value << std::endl;
+		*value*=factor;
+		char* str;
+		std::sprintf(str,"%.5g",*value);
+		app->_replaceText(targetButton, str+append);
+	}
+
+	static void updateScrollText(Button &button, float perc) {
+		app->_replaceText(button, std::to_string(static_cast<int>(perc * 100)) + "%");
+	}
+
+	static void replaceText(Button& button, std::string str) {
+		app->_replaceText(button, str);
+	}
+
+	void _replaceText(Button& button, std::string str) {
+		std::cout << "_replaceText " << &button << std::endl;
+		txt.setButtonText(button, str);
+		createCommandBuffers();
+	}
+
+	static void hideWhenClicked(Button& button) {
+		app->_hideWhenClicked(button);
+	}
+
+	void _hideWhenClicked(Button& button) {
+		std::cout << "_hideWhenClicked " << &button << std::endl;
+		button.setVisible(false);
+	}
+
+	static void toggleWhenClicked(Button& button) {
+		app->_toggleWhenClicked(button);
+	}
+
+	void _toggleWhenClicked(Button& button) {
+		std::cout << "_toggleWhenClicked " << &button << std::endl;
+		exampleToggleableProperty=!exampleToggleableProperty;
+		button.setActive(exampleToggleableProperty);
+	}
 
 	void setWindowParameters() {
 		windowWidth = 1280;
@@ -89,15 +139,18 @@ class SolarSystem3D : public BaseProject {
 		initialBackgroundColor = { 0.0f, 0.005f, 0.01f, 1.0f };
 
 		// Descriptor pool sizes
-		uniformBlocksInPool = 18;
-		texturesInPool = 9;
-		setsInPool = 9;
+		uniformBlocksInPool = 1 + 1 + 3 * buttonInfo.size() + 2 * (planets.size()+1); //orbit, text
+		texturesInPool = 1 + 3 * buttonInfo.size() + (planets.size()+1); //text
+		setsInPool = 1 + 1 + 3 * buttonInfo.size() + (planets.size()+1); //orbit, text
 
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
 
 	void onWindowResize(int w, int h) {
 		Ar = (float)w / (float)h;
+		windowWidth = w;
+		windowHeight = h;
+		txt.setAr(Ar);
 	}
 
 	void localInit() {
@@ -153,6 +206,18 @@ class SolarSystem3D : public BaseProject {
 		T_Sa.init(this, "textures/planets/saturn.jpg");
 		T_Ur.init(this, "textures/planets/uranus.jpg");
 		T_Ne.init(this, "textures/planets/neptune.jpg");
+
+		Button *testButton = new Button(toggleWhenClicked, "Test toggle", {-1,-1}, false, {2,0});
+		buttons.push_back(*testButton);
+		Button *testButton2 = new Button(toggleWhenClicked, "Test toggle2", {0,0}, false, {0,0}, testButton);
+		buttons.push_back(*testButton2);
+		Button *scrollButton = new ScrollButton("Test scroll", {0.1,0}, false, {1,0});
+		buttons.push_back(*scrollButton);
+		Button *scrollKnob = new ScrollKnob(std::bind(updateScrollText,std::reference_wrapper<Button>(*scrollButton),_1), 10, 5, 0.82f, {0,0}, false, {(scrollButton->getFullWidth()-scrollButton->getInfo().marginHorizontal)/UI_Scale,0});
+		scrollKnob->setOffset({0.1,(362.f/800/2-scrollKnob->getInfo().height/2)*UI_Scale});
+		buttons.push_back(*scrollKnob);
+		txt.init(this, buttons, Ar);
+		txt.setButtonsActive({exampleToggleableProperty,true,true,true});
 	}
 
 	void pipelinesAndDescriptorSetsInit() {
@@ -213,6 +278,7 @@ class SolarSystem3D : public BaseProject {
 			{2, TEXTURE, 0, &T_Ne}
 		});
 
+		txt.pipelinesAndDescriptorSetsInit();
 	}
 
 	void pipelinesAndDescriptorSetsCleanup() {
@@ -227,6 +293,7 @@ class SolarSystem3D : public BaseProject {
 		DS_Sa.cleanup();
 		DS_Ur.cleanup();
 		DS_Ne.cleanup();
+		txt.pipelinesAndDescriptorSetsCleanup();
 	}
 
 	void localCleanup() {
@@ -253,6 +320,7 @@ class SolarSystem3D : public BaseProject {
 		DSL.cleanup();
 
 		P.destroy();
+		txt.localCleanup();
 	}
 
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
@@ -294,6 +362,7 @@ class SolarSystem3D : public BaseProject {
 		M_Ne.bind(commandBuffer);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Ne.indices.size()), 1, 0, 0, 0);
 
+		txt.populateCommandBuffer(commandBuffer, currentImage);
 	}
 
 	void updateUniformBuffer(uint32_t currentImage) {
@@ -308,7 +377,7 @@ class SolarSystem3D : public BaseProject {
 		getSixAxis(deltaT, m, r, fire);
 
 		// instanciating controller
-		static Controller controller{window, planets}; 
+		static Controller controller{window, planets, buttons};
 		ControllerActions currAction = controller.listenEvent();
 
 		/////////// WORLD MATRICES ///////////
@@ -434,8 +503,8 @@ class SolarSystem3D : public BaseProject {
 			ViewM_Reg = glm::rotate(glm::mat4(1), CAM_ANG_SPEED * r.y * deltaT, glm::vec3(0, 1, 0)) * ViewM_Reg;
 			ViewM_Reg = glm::rotate(glm::mat4(1), CAM_ANG_SPEED * r.z * deltaT, glm::vec3(0, 0, 1)) * ViewM_Reg;
 			ViewM_Reg = glm::translate(glm::mat4(1), glm::vec3(
-				CAM_LIN_SPEED * m.x * deltaT,
-				CAM_LIN_SPEED * m.y * deltaT,
+				CAM_LIN_SPEED * -m.x * deltaT,
+				CAM_LIN_SPEED * -m.y * deltaT,
 				CAM_LIN_SPEED * m.z * deltaT)
 				) * ViewM_Reg;
 
@@ -447,7 +516,7 @@ class SolarSystem3D : public BaseProject {
 	
 		const float FOVy = glm::radians(90.0f);
 		const float nearPlane = 0.1f;
-		const float farPlane = 100.0f;
+		const float farPlane = 1000.0f;
 
 		glm::mat4 ProjectionM = glm::perspective(FOVy, Ar, nearPlane, farPlane);
 		ProjectionM[1][1] *= -1;
@@ -527,6 +596,7 @@ class SolarSystem3D : public BaseProject {
 		DS_Ne.map(currentImage, &ubo_Ne, sizeof(ubo_Ne), 0);
 		DS_Ne.map(currentImage, &gubo, sizeof(gubo), 1);
 
+		txt.updateUniformBuffer(currentImage);
 	}
 
 	void createPlanetMesh(std::vector<Vertex>& vDef, std::vector<uint32_t>& vIdx);

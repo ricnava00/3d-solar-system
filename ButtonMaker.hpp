@@ -1,14 +1,12 @@
+#pragma once
 #include "glm/gtx/string_cast.hpp"
+#include "Button.hpp"
+#include "ScrollButton.hpp"
+#include "ScrollKnob.hpp"
 
 const float UI_Scale = .8f;
 
 struct SingleText {
-	std::function<void(int)> callback;
-	std::string str;
-	glm::vec2 pos;
-	int adjacentButton = -1;
-	float minWidth = 0;
-	bool alignRight = false;
 	int start = 0;
 	int len = 0;
 };
@@ -41,25 +39,6 @@ struct InstanceData {
 	float active;
 };
 
-struct ButtonData {
-	glm::vec2 offset;
-	glm::vec2 alignedOffset;
-	int adjacentButton = -1;
-	bool alignRight;
-	glm::vec2 textSize;
-	glm::vec2 maxTextSize = glm::vec2(0);
-	bool visible = true;
-	bool hover = false;
-	bool active = true;
-};
-
-struct BoundingBox {
-	float left;
-	float top;
-	float right;
-	float bottom;
-};
-
 const std::vector<FontDef> Fonts = {{73,{{0,0,0,0,0,0,21},{116,331,18,61,4,4,21},{379,444,29,30,-1,4,26},{135,331,51,61,-4,4,41},{206,0,46,74,-2,0,41},{320,143,70,62,-2,5,65},{0,143,54,63,-1,4,49},{409,444,18,30,1,4,14},{25,0,27,77,1,3,24},{53,0,28,77,-2,3,24},{345,444,33,30,-1,4,29},{156,444,48,46,-1,19,43},{428,444,18,28,2,48,21},{26,492,29,17,-1,32,24},{56,492,18,17,2,48,21},{478,0,33,61,-4,4,21},{55,143,46,62,-2,5,41},{225,331,29,60,3,5,41},{255,331,46,60,-2,5,41},{102,143,46,62,-2,5,41},{302,331,47,60,-2,5,41},{453,143,46,61,-2,6,41},{149,143,46,62,-2,5,41},{350,331,47,59,-2,6,41},{196,143,46,62,-2,5,41},{243,143,46,62,-2,5,41},{137,444,18,47,4,18,21},{427,331,18,58,4,18,21},{344,393,52,48,-3,18,43},{247,444,48,31,-1,27,43},{397,393,52,48,-3,18,43},{391,143,43,62,1,3,41},
 {116,78,68,64,4,3,74},{124,207,57,61,-3,4,49},{182,207,51,61,1,4,49},{360,0,57,64,-1,3,52},{234,207,53,61,2,4,52},{288,207,49,61,2,4,49},{338,207,47,61,2,4,44},{418,0,59,64,-1,3,57},{386,207,53,61,1,4,52},{440,207,18,61,3,4,21},{411,78,41,63,-3,4,36},{0,269,54,61,1,4,49},{55,269,45,61,1,4,41},{101,269,61,61,1,4,60},{163,269,52,61,1,4,52},{0,78,61,64,-1,3,57},{216,269,50,61,2,4,49},{253,0,61,67,-1,3,57},{267,269,54,61,2,4,52},{62,78,53,64,-1,3,49},{459,207,53,61,-3,4,44},{453,78,52,63,2,4,52},{322,269,56,61,-2,4,49},{379,269,77,61,-3,4,68},{0,331,57,61,-3,4,49},{58,331,57,61,-3,4,49},{457,269,52,61,-3,4,44},{154,0,25,76,0,4,21},{187,331,37,61,-7,4,21},{180,0,25,76,-3,4,21},{205,444,41,40,0,4,34},{75,492,51,13,-4,61,41},
 {0,492,25,20,-3,3,24},{0,393,46,50,-1,17,41},{185,78,44,63,0,4,41},{184,393,43,49,-2,17,36},{230,78,44,63,-2,4,41},{47,393,46,50,-2,17,41},{290,143,29,62,-3,3,21},{315,0,44,64,-2,17,41},{0,207,42,61,0,4,41},{43,207,18,61,0,4,16},{0,0,24,77,-6,4,16},{62,207,43,61,0,4,36},{106,207,17,61,1,4,16},{446,331,62,48,0,17,60},{228,393,42,48,0,17,41},{94,393,46,50,-2,17,41},{275,78,44,63,0,17,41},{320,78,44,63,-2,17,41},{271,393,29,48,1,17,24},{141,393,42,50,-2,17,36},{398,331,28,59,-3,7,21},{301,393,42,48,0,18,41},{0,444,46,47,-4,18,36},{450,393,62,47,-4,18,52},{47,444,46,47,-4,18,36},{365,78,45,63,-3,18,36},{94,444,42,47,-2,18,36},{82,0,35,77,-6,3,25},{435,143,17,62,1,3,19},{118,0,35,77,-3,3,25},{447,444,53,24,-4,30,43},{296,444,48,31,-1,27,43}}},
@@ -73,11 +52,6 @@ const std::vector<FontDef> Fonts = {{73,{{0,0,0,0,0,0,21},{116,331,18,61,4,4,21}
 {902,121,10,7,-3,-1,6},{842,0,15,14,-3,2,9},{842,111,14,17,-2,-1,9},{858,123,14,14,-3,2,8},{842,129,14,17,-3,-1,9},{873,0,14,14,-3,2,9},{888,138,10,16,-3,-1,5},{858,0,14,17,-3,2,9},{888,0,13,16,-2,-1,9},{914,0,8,16,-2,-1,4},{807,134,10,20,-4,-1,4},{888,17,13,16,-2,-1,8},{914,17,8,16,-2,-1,4},{768,89,18,13,-2,2,14},{873,141,13,13,-2,2,9},{873,15,14,14,-3,2,9},{858,18,14,17,-2,2,9},{858,36,14,17,-3,2,9},{902,107,10,13,-2,2,6},{873,30,14,14,-3,2,8},{902,90,10,16,-3,0,5},{888,51,13,14,-2,2,9},{873,45,14,13,-3,2,8},{789,85,17,13,-3,2,12},{873,59,14,13,-3,2,8},{858,54,14,17,-3,2,8},{873,73,14,13,-3,2,8},{888,79,12,20,-4,-1,6},{914,85,8,16,-2,-1,5},{888,100,12,20,-3,-1,6},{825,15,16,8,-3,5,10},{873,112,14,10,-2,4,10}}}};
 
 struct TextMaker {
-	const float btnWidth_L=134.0/800/2*UI_Scale;
-	const float btnWidth_C=27.0/800/2*UI_Scale;
-	const float btnWidth_R=btnWidth_L;
-	const float btnHeight=321.0/800/2*UI_Scale;
-	const float btnMargin_Hor=60.0/800*UI_Scale;
 	const float textScale=1.0/800.0*UI_Scale;
 
 	float Ar;
@@ -87,37 +61,31 @@ struct TextMaker {
 	BaseProject *BP;
 
 	DescriptorSetLayout DSL;
-	Pipeline P;
-	Pipeline PB;
-	Model<TextVertex> M;
-	Model<TextVertex> MB1;
-	Model<TextVertex> MB2;
-	Model<TextVertex> MB3;
-	Texture T;
-	Texture TB1;
-	Texture TB2;
-	Texture TB3;
-	DescriptorSet DS;
-	DescriptorSet DSB1;
-	DescriptorSet DSB2;
-	DescriptorSet DSB3;
+	Pipeline PText;
+	Pipeline PButtons;
+	Model<TextVertex> MText;
+	std::vector<Model<TextVertex>> MButtons;
+	Texture TText;
+	std::vector<Texture> TButtons;
+	DescriptorSet DSText;
+	std::vector<DescriptorSet> DSButtons;
 	
 	std::vector<SingleText> Texts;
-	std::vector<ButtonData> buttonData;
-	std::vector<BoundingBox> boundingBoxes;
+	std::vector<std::reference_wrapper<Button>> Buttons;
 	VkBuffer textBuffer;
-	VkBuffer instanceBuffer1;
-	VkBuffer instanceBuffer2;
-	VkBuffer instanceBuffer3;
+	std::vector<VkBuffer> instanceBuffers;
 	VkDeviceMemory textBufferMemory;
-	VkDeviceMemory instanceBufferMemory1;
-	VkDeviceMemory instanceBufferMemory2;
-	VkDeviceMemory instanceBufferMemory3;
+	std::vector<VkDeviceMemory> instanceBufferMemories;
 
-	void init(BaseProject *_BP, std::vector<SingleText> *_Texts, float _Ar) {
+	void init(BaseProject *_BP, std::vector<std::reference_wrapper<Button>> &_Buttons, float _Ar) {
 		BP = _BP;
-		Texts = *_Texts;
+		Buttons = _Buttons;
 		Ar = _Ar;
+		for(Button &b: Buttons)
+		{
+			b.setUIScale(UI_Scale);
+			b.setAr(_Ar);
+		}
 		createTextDescriptorSetAndVertexLayout();
 		createTextPipeline();
 		createTextModelAndTexture();
@@ -127,103 +95,43 @@ struct TextMaker {
 	void setAr(float _Ar)
 	{
 		Ar = _Ar;
-		updateInstanceBuffers();
+		for(Button &b: Buttons)
+		{
+			b.setAr(_Ar);
+		}
 	}
 
-	void setButtonText(int buttonIndex, std::string str)
-	{
-		if(Texts[buttonIndex].str != str)
-		{
-			Texts[buttonIndex].str = str;
+	void setButtonText(Button &button, std::string text) {
+		if (button.getText() != text) {
+			button.setText(text);
 			createTextMesh();
-			M.cleanup();
-			M.initMesh(BP,&VD);
-			updateInstanceBuffers();
+			MText.cleanup();
+			MText.initMesh(BP, &VD);
 		}
 	}
 
-	void setButtonHover(std::vector<bool> hovering)
-	{
-		int index=0;
-		bool update=false;
-		for(bool isHovering: hovering)
-		{
-			update|=setButtonHover(index++, isHovering, false);
-		}
-		if(update)
-		{
-			updateInstanceBuffers();
+	void setButtonsHover(std::vector<bool> hover) {
+		int n = 0;
+		for (Button &b : Buttons) {
+			b.setHover(hover[n]);
+			n++;
 		}
 	}
 
-	bool setButtonHover(int buttonIndex, bool isHovering, bool update = true)
-	{
-		if(buttonData[buttonIndex].hover!=isHovering)
-		{
-			buttonData[buttonIndex].hover=isHovering;
-			if(update)
-			{
-				updateInstanceBuffers();
-			}
-			return true;
-		}
-		return false;
-	}
-
-	void setButtonActive(std::vector<bool> active)
-	{
-		int index=0;
-		bool update=false;
-		for(bool isActive: active)
-		{
-			update|=setButtonActive(index++, isActive, false);
-		}
-		if(update)
-		{
-			updateInstanceBuffers();
+	void setButtonsActive(std::vector<bool> active) {
+		int n = 0;
+		for (Button &b : Buttons) {
+			b.setActive(active[n]);
+			n++;
 		}
 	}
 
-	bool setButtonActive(int buttonIndex, bool isActive, bool update = true)
-	{
-		if(buttonData[buttonIndex].active!=isActive)
-		{
-			buttonData[buttonIndex].active=isActive;
-			if(update)
-			{
-				updateInstanceBuffers();
-			}
-			return true;
+	void setButtonsVisible(std::vector<bool> visible) {
+		int n = 0;
+		for (Button &b : Buttons) {
+			b.setVisible(visible[n]);
+			n++;
 		}
-		return false;
-	}
-
-	void setButtonVisible(std::vector<bool> visible)
-	{
-		int index=0;
-		bool update=false;
-		for(bool isVisible: visible)
-		{
-			update|=setButtonVisible(index++, isVisible, false);
-		}
-		if(update)
-		{
-			updateInstanceBuffers();
-		}
-	}
-
-	bool setButtonVisible(int buttonIndex, bool isVisible, bool update = true)
-	{
-		if(buttonData[buttonIndex].visible!=isVisible)
-		{
-			buttonData[buttonIndex].visible=isVisible;
-			if(update)
-			{
-				updateInstanceBuffers();
-			}
-			return true;
-		}
-		return false;
 	}
 
 	void createTextDescriptorSetAndVertexLayout() {
@@ -246,63 +154,76 @@ struct TextMaker {
 	}
 
  	void createTextPipeline() {
-		P.init(BP, &VD, "shaders/ButtonVert.spv", "shaders/TextFrag.spv", {&DSL});
-		P.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-		PB.init(BP, &VD, "shaders/ButtonVert.spv", "shaders/ButtonFrag.spv", {&DSL});
-		PB.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+		PText.init(BP, &VD, "shaders/ButtonVert.spv", "shaders/TextFrag.spv", {&DSL});
+		PText.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+		PButtons.init(BP, &VD, "shaders/ButtonVert.spv", "shaders/ButtonFrag.spv", {&DSL});
+		PButtons.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
  	}
 	
 	void createTextModelAndTexture() {
 		createTextMesh();
 		createButtons();
-		M.initMesh(BP,&VD);
-		MB1.initMesh(BP,&VD);
-		MB2.initMesh(BP,&VD);
-		MB3.initMesh(BP,&VD);
-		T.init(BP, "textures/gui/Fonts.png");
-		TB1.init(BP, "textures/gui/Button-L.png",VK_FORMAT_R8G8B8A8_SRGB,false);
-		TB1.createTextureSampler(VK_FILTER_LINEAR,VK_FILTER_LINEAR,VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE); //Removes weird artifact where the texture wraps even when using 0-1 (I guess it's due to the linear interpolation looking for negative pixels)
-		TB2.init(BP, "textures/gui/Button-C.png");
-		TB3.init(BP, "textures/gui/Button-R.png",VK_FORMAT_R8G8B8A8_SRGB,false);
-		TB3.createTextureSampler(VK_FILTER_LINEAR,VK_FILTER_LINEAR,VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+		MText.initMesh(BP, &VD);
+		for (auto &M : MButtons) {
+			M.initMesh(BP, &VD);
+		}
+		TText.init(BP, "textures/gui/Fonts.png");
+		TButtons.resize(buttonInfo.size() * 3);
+		int n = 0;
+		for (auto const& [type, info] : buttonInfo) {
+			TButtons[n].init(BP, (std::string("textures/gui/") + info.textureName + std::string("-L.png")).c_str(), VK_FORMAT_R8G8B8A8_SRGB, false);
+			TButtons[n].createTextureSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE); //Removes weird artifact where the texture wraps even when using 0-1 (I guess it's due to the linear interpolation looking for negative pixels)
+			TButtons[n + 1].init(BP, (std::string("textures/gui/") + info.textureName + std::string("-C.png")).c_str());
+			TButtons[n + 2].init(BP, (std::string("textures/gui/") + info.textureName + std::string("-R.png")).c_str(), VK_FORMAT_R8G8B8A8_SRGB, false);
+			TButtons[n + 2].createTextureSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+			n += 3;
+		}
 	}
 
-	void updateInstanceBuffers(bool init=false)
-	{
+	void updateInstanceBuffers(bool init = false) {
 		std::vector<InstanceData> instanceData;
 		alignButtons();
 		updateBoundingBoxes();
-		instanceData=getTextInstanceData();
-		if(init)
-		{
-			createBuffer(&textBuffer,&textBufferMemory,instanceData);
+		instanceData = getTextInstanceData();
+		if (init) {
+			createBuffer(&textBuffer, &textBufferMemory, instanceData);
+			instanceBuffers.resize(buttonInfo.size() * 3);
+			instanceBufferMemories.resize(buttonInfo.size() * 3);
 		}
-		updateBuffer(&textBufferMemory,instanceData);
-		instanceData=getButtonInstanceData(0);
-		if(init)
-		{
-			createBuffer(&instanceBuffer1,&instanceBufferMemory1,instanceData);
+		updateBuffer(&textBufferMemory, instanceData);
+		int n = 0;
+		for (auto const& [type, info] : buttonInfo) {
+			instanceData = getButtonInstanceData(type, 0);
+			if (!instanceData.size()) { //No buttons of this type
+				continue;
+			}
+			if (init) {
+				createBuffer(&instanceBuffers[n], &instanceBufferMemories[n], instanceData);
+			}
+			updateBuffer(&instanceBufferMemories[n], instanceData);
+			instanceData = getButtonInstanceData(type, 1);
+			if (init) {
+				createBuffer(&instanceBuffers[n + 1], &instanceBufferMemories[n + 1], instanceData);
+			}
+			updateBuffer(&instanceBufferMemories[n + 1], instanceData);
+			instanceData = getButtonInstanceData(type, 2);
+			if (init) {
+				createBuffer(&instanceBuffers[n + 2], &instanceBufferMemories[n + 2], instanceData);
+			}
+			updateBuffer(&instanceBufferMemories[n + 2], instanceData);
+			n += 3;
 		}
-		updateBuffer(&instanceBufferMemory1,instanceData);
-		instanceData=getButtonInstanceData(1);
-		if(init)
-		{
-			createBuffer(&instanceBuffer2,&instanceBufferMemory2,instanceData);
-		}
-		updateBuffer(&instanceBufferMemory2,instanceData);
-		instanceData=getButtonInstanceData(2);
-		if(init)
-		{
-			createBuffer(&instanceBuffer3,&instanceBufferMemory3,instanceData);
-		}
-		updateBuffer(&instanceBufferMemory3,instanceData);
 	}
 
-	void createButtons()
-	{
-		createRectMesh(0,0,btnWidth_L,btnHeight,MB1);
-		createRectMesh(0,0,btnWidth_C,btnHeight,MB2);
-		createRectMesh(0,0,btnWidth_R,btnHeight,MB3);
+	void createButtons() {
+		MButtons.resize(buttonInfo.size()*3);
+		int n = 0;
+		for (auto const& [type, info] : buttonInfo) {
+			createRectMesh(0, 0, info.widthLeft * UI_Scale, info.height * UI_Scale, MButtons[n]);
+			createRectMesh(0, 0, info.widthCenter * UI_Scale, info.height * UI_Scale, MButtons[n + 1]);
+			createRectMesh(0, 0, info.widthRight * UI_Scale, info.height * UI_Scale, MButtons[n + 2]);
+			n += 3;
+		}
 	}
 
 	template <class Vert>
@@ -315,7 +236,7 @@ struct TextMaker {
 		};
 		vertex.texCoord = {
 			0.0F,
-			1.0F
+			0.0F
 		};			
 		M.vertices.push_back(vertex);
 		vertex.pos = {
@@ -324,7 +245,7 @@ struct TextMaker {
 		};
 		vertex.texCoord = {
 			1.0F,
-			1.0F
+			0.0F
 		};			
 		M.vertices.push_back(vertex);
 		vertex.pos = {
@@ -333,7 +254,7 @@ struct TextMaker {
 		};
 		vertex.texCoord = {
 			1.0F,
-			0.0F
+			1.0F
 		};			
 		M.vertices.push_back(vertex);
 		vertex.pos = {
@@ -342,7 +263,7 @@ struct TextMaker {
 		};
 		vertex.texCoord = {
 			0.0F,
-			0.0F
+			1.0F
 		};			
 		M.vertices.push_back(vertex);
 		M.indices = {0, 1, 2, 2, 3, 0};
@@ -350,13 +271,14 @@ struct TextMaker {
 
 	void createTextMesh() {
 		int totLen = 0;
-		for(auto& Txt : Texts) {
-			totLen += Txt.str.length();
+		for(Button &button: Buttons) {
+			totLen += button.getText().length();
 		}
 		std::cout << "Total characters: " << totLen << "\n";
 
-		M.indices.resize(6 * totLen);
-		M.vertices.clear();
+		MText.indices.resize(6 * totLen);
+		MText.vertices.clear();
+		Texts.clear();
 
 		int FontId = 0;
 
@@ -368,10 +290,11 @@ struct TextMaker {
 		int tpx = 0;
 
 		int ib = 0, k = 0, n = 0;
-		for(auto& Txt : Texts) {
+		for(Button &button: Buttons) {
+			SingleText Txt;
 			Txt.start = ib;
-			for(int j = 0; j < Txt.str.length(); j++) {
-				int c = ((int)Txt.str[j]) - minChar;
+			for(int j = 0; j < button.getText().length(); j++) {
+				int c = ((int)button.getText()[j]) - minChar;
 				if((c >= 0) && (c <= maxChar)) {
 					//std::cout << k << " " << j << " " << i << " " << ib << " " << c << "\n";
 					CharData d = Fonts[FontId].P[c];
@@ -386,7 +309,7 @@ struct TextMaker {
 						(float)d.x / texW,
 						(float)d.y / texH 
 					};			
-					M.vertices.push_back(vertex);
+					MText.vertices.push_back(vertex);
 			
 					vertex.pos = {
 						(float)(tpx + d.xoffset + d.width) * textScale,
@@ -396,7 +319,7 @@ struct TextMaker {
 						(float)(d.x + d.width) / texW,
 						(float)d.y / texH 
 					};
-					M.vertices.push_back(vertex);
+					MText.vertices.push_back(vertex);
 		
 					vertex.pos = {
 						(float)(tpx + d.xoffset) * textScale,
@@ -406,7 +329,7 @@ struct TextMaker {
 						(float)d.x / texW,
 						(float)(d.y + d.height) / texH 
 					};
-					M.vertices.push_back(vertex);
+					MText.vertices.push_back(vertex);
 		
 					vertex.pos = {
 						(float)(tpx + d.xoffset + d.width) * textScale,
@@ -416,14 +339,14 @@ struct TextMaker {
 						(float)(d.x + d.width) / texW,
 						(float)(d.y + d.height) / texH 
 					};
-					M.vertices.push_back(vertex);
+					MText.vertices.push_back(vertex);
 								
-					M.indices[ib + 0] = 4 * k + 0;
-					M.indices[ib + 1] = 4 * k + 1;
-					M.indices[ib + 2] = 4 * k + 2;
-					M.indices[ib + 3] = 4 * k + 1;
-					M.indices[ib + 4] = 4 * k + 2;
-					M.indices[ib + 5] = 4 * k + 3;
+					MText.indices[ib + 0] = 4 * k + 0;
+					MText.indices[ib + 1] = 4 * k + 1;
+					MText.indices[ib + 2] = 4 * k + 2;
+					MText.indices[ib + 3] = 4 * k + 1;
+					MText.indices[ib + 4] = 4 * k + 2;
+					MText.indices[ib + 5] = 4 * k + 3;
 
 					ib += 6;
 					tpx += d.xadvance;
@@ -431,111 +354,109 @@ struct TextMaker {
 				}
 			}
 			Txt.len = ib - Txt.start;
-			ButtonData button;
-			if(buttonData.size()>n)
-			{
-				button=buttonData[n];
-			}
-			else
-			{
-				buttonData.resize(buttonData.size()+1);
-			}
-			button.offset=Txt.pos;
-			button.alignedOffset=Txt.pos;
-			button.adjacentButton=Txt.adjacentButton;
-			button.alignRight=Txt.alignRight;
-			button.textSize={tpx*textScale,textScale*Fonts[FontId].lineHeight};
-			button.maxTextSize={std::max({Txt.minWidth*UI_Scale,button.maxTextSize.x,button.textSize.x}),std::max(button.maxTextSize.y,button.textSize.y)};
-			buttonData[n]=button;
+			const glm::vec2 textSize(tpx*textScale,textScale*Fonts[FontId].lineHeight);
+			button.setTextSize(textSize);
+			button.setMinSize({std::max({button.getMinSize().x,textSize.x}),std::max(button.getMinSize().y,textSize.y)});
+			Texts.push_back(Txt);
 			n++;
 			tpx = 0;
 		}		
-		std::cout << "Text: " << M.vertices.size()
-					<< ", I: " << M.indices.size() << "\n";
+		std::cout << "Text: " << MText.vertices.size()
+					<< ", I: " << MText.indices.size() << "\n";
 	}
 
 	void createTextDescriptorSets() {
-		DS.init(BP, &DSL, {
+		DSText.init(BP, &DSL, {
 					{0, UNIFORM, sizeof(float), nullptr},
-					{1, TEXTURE, 0, &T}
+					{1, TEXTURE, 0, &TText}
 				});
-		DSB1.init(BP, &DSL, {
+		DSButtons.resize(buttonInfo.size() * 3);
+		int n = 0;
+		for (auto &DSB : DSButtons) {
+			DSB.init(BP, &DSL, {
 					{0, UNIFORM, sizeof(float), nullptr},
-					{1, TEXTURE, 0, &TB1}
+					{1, TEXTURE, 0, &TButtons[n]}
 				});
-		DSB2.init(BP, &DSL, {
-					{0, UNIFORM, sizeof(float), nullptr},
-					{1, TEXTURE, 0, &TB2}
-				});
-		DSB3.init(BP, &DSL, {
-					{0, UNIFORM, sizeof(float), nullptr},
-					{1, TEXTURE, 0, &TB3}
-				});
+			n++;
+		}
 	}
 
 	void pipelinesAndDescriptorSetsInit() {
-		P.create();
-		PB.create();
+		PText.create();
+		PButtons.create();
 		createTextDescriptorSets();
 	}
 	
 	void pipelinesAndDescriptorSetsCleanup() {
-		P.cleanup();
-		PB.cleanup();
-		DS.cleanup();
-		DSB1.cleanup();
-		DSB2.cleanup();
-		DSB3.cleanup();
+		PText.cleanup();
+		PButtons.cleanup();
+		DSText.cleanup();
+		for (auto &DSB : DSButtons) {
+			DSB.cleanup();
+		}
 	}
 
 	void localCleanup() {
-		T.cleanup();
-		TB1.cleanup();
-		TB2.cleanup();
-		TB3.cleanup();
-		M.cleanup();
-		MB1.cleanup();
-		MB2.cleanup();
-		MB3.cleanup();
+		TText.cleanup();
+		for (auto &T : TButtons) {
+			T.cleanup();
+		}
+		MText.cleanup();
+		for (auto &M : MButtons) {
+			M.cleanup();
+		}
 		DSL.cleanup();
-		P.destroy();
-		PB.destroy();
+		PText.destroy();
+		PButtons.destroy();
 		vkDestroyBuffer(BP->device, textBuffer, nullptr);
-		vkDestroyBuffer(BP->device, instanceBuffer1, nullptr);
-		vkDestroyBuffer(BP->device, instanceBuffer2, nullptr);
-		vkDestroyBuffer(BP->device, instanceBuffer3, nullptr);
-	 	vkFreeMemory(BP->device, textBufferMemory, nullptr);
-	 	vkFreeMemory(BP->device, instanceBufferMemory1, nullptr);
-	 	vkFreeMemory(BP->device, instanceBufferMemory2, nullptr);
-	 	vkFreeMemory(BP->device, instanceBufferMemory3, nullptr);
+		for (auto &B : instanceBuffers) {
+			vkDestroyBuffer(BP->device, B, nullptr);
+		}
+		vkFreeMemory(BP->device, textBufferMemory, nullptr);
+		for (auto &M : instanceBufferMemories) {
+			vkFreeMemory(BP->device, M, nullptr);
+		}
 	}
 
-	void updateUniformBuffer(int currentImage)
-	{
-		DS.map(currentImage, &Ar, sizeof(Ar), 0);
-		DSB1.map(currentImage, &Ar, sizeof(Ar), 0);
-		DSB2.map(currentImage, &Ar, sizeof(Ar), 0);
-		DSB3.map(currentImage, &Ar, sizeof(Ar), 0);
+	void updateUniformBuffer(int currentImage) {
+		bool update = false;
+		for (Button &b : Buttons) {
+			update |= b.needsUpdate();
+		}
+		if (update) {
+			updateInstanceBuffers();
+		}
+		DSText.map(currentImage, &Ar, sizeof(Ar), 0);
+		for (auto &DSB : DSButtons) {
+			DSB.map(currentImage, &Ar, sizeof(Ar), 0);
+		}
 	}
 
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage, int curText = 0) {
-		VkDeviceSize offsets[1] = { 0 };			
-		PB.bind(commandBuffer);
-		MB1.bind(commandBuffer);
-		vkCmdBindVertexBuffers(commandBuffer, 1, 1, &instanceBuffer1, offsets);
-		DSB1.bind(commandBuffer, P, 0, currentImage);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MB1.indices.size()), buttonData.size(), 0, 0, 0);
-		MB2.bind(commandBuffer);
-		vkCmdBindVertexBuffers(commandBuffer, 1, 1, &instanceBuffer2, offsets);
-		DSB2.bind(commandBuffer, P, 0, currentImage);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MB2.indices.size()), buttonData.size(), 0, 0, 0);
-		MB3.bind(commandBuffer);
-		vkCmdBindVertexBuffers(commandBuffer, 1, 1, &instanceBuffer3, offsets);
-		DSB3.bind(commandBuffer, P, 0, currentImage);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MB3.indices.size()), buttonData.size(), 0, 0, 0);
-		P.bind(commandBuffer);
-		M.bind(commandBuffer);
-		DS.bind(commandBuffer, P, 0, currentImage);
+		VkDeviceSize offsets[1] = { 0 };
+		//TODO remove when sure everything works
+		if(std::min({MButtons.size(),instanceBuffers.size(),instanceBufferMemories.size(),DSButtons.size(),TButtons.size(),buttonInfo.size()*3})!=std::max({MButtons.size(),instanceBuffers.size(),instanceBufferMemories.size(),DSButtons.size(),TButtons.size(),buttonInfo.size()*3}))
+		{
+			std::vector<size_t> f={MButtons.size(),instanceBuffers.size(),instanceBufferMemories.size(),DSButtons.size(),TButtons.size(),buttonInfo.size()*3};
+			for(size_t fl: f)
+			{
+				std::cout << fl << " ";
+			}
+			std::cout << std::endl;
+		}
+		PButtons.bind(commandBuffer);
+		for (int n = 0; n < buttonInfo.size() * 3; n++) {
+			if (instanceBufferMemories[n] == nullptr) { //No buttons of this type
+				continue;
+			}
+			MButtons[n].bind(commandBuffer);
+			vkCmdBindVertexBuffers(commandBuffer, 1, 1, &instanceBuffers[n], offsets);
+			DSButtons[n].bind(commandBuffer, PText, 0, currentImage);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(MButtons[n].indices.size()), Buttons.size(), 0, 0, 0);
+		}
+		PText.bind(commandBuffer);
+		MText.bind(commandBuffer);
+		DSText.bind(commandBuffer, PText, 0, currentImage);
 		vkCmdBindVertexBuffers(commandBuffer, 1, 1, &textBuffer, offsets);
 		int n=0;
 		for(SingleText t: Texts)
@@ -566,118 +487,37 @@ struct TextMaker {
 		vkUnmapMemory(BP->device, *instanceBufferMemory);			
 	}
 
-	float getScaleCenter(ButtonData &b) {
-		return ceil(std::max(0.0F, b.maxTextSize.x + 2 * btnMargin_Hor - btnWidth_L - btnWidth_R) / btnWidth_C);
-	}
-
-	std::vector<InstanceData> getTextInstanceData()
-	{
+	std::vector<InstanceData> getTextInstanceData() {
 		std::vector<InstanceData> instanceData;
-		float scaleCenter;
-		for(ButtonData &b: buttonData)
-		{
-			glm::vec2 textOffset;
-			scaleCenter = getScaleCenter(b);
-			textOffset.x=(btnWidth_L+btnWidth_R+btnWidth_C*scaleCenter-b.textSize.x)/2/Ar;
-			textOffset.y=(btnHeight-b.textSize.y)/2;
-			instanceData.push_back({b.alignedOffset+textOffset,glm::vec2(1.0), b.visible ? 1.0f : 0.0f, b.hover ? 1.0f : 0.0f, b.active ? 1.0f : 0.0f});
+		Geometry geometry;
+		for (Button &b : Buttons) {
+			geometry = b.getTextGeometry();
+			instanceData.push_back( { geometry.offset, geometry.scale, b.isVisible() ? 1.0f : 0.0f, b.isHover() ? 1.0f : 0.0f, b.isActive() ? 1.0f : 0.0f });
 		}
 		return instanceData;
 	}
 
-	std::vector<InstanceData> getButtonInstanceData(int side)
-	{
+	std::vector<InstanceData> getButtonInstanceData(ButtonType type, int side) {
 		std::vector<InstanceData> instanceData;
-		float scaleCenter;
-		for(ButtonData &b: buttonData)
-		{
-			glm::vec2 offset=b.alignedOffset;
-			if(side>=1)
-			{
-				scaleCenter = getScaleCenter(b);
-				offset+=glm::vec2(btnWidth_L/Ar,0);
+		Geometry geometry;
+		for (Button &b : Buttons) {
+			if (b.getType() == type) {
+				geometry = b.getSideGeometry(side);
+				instanceData.push_back( {geometry.offset, geometry.scale, b.isVisible() ? 1.0f : 0.0f, b.isHover() ? 1.0f : 0.0f, b.isActive() ? 1.0f : 0.0f});
 			}
-			if(side==2)
-			{
-				offset+=glm::vec2(btnWidth_C/Ar*scaleCenter,0);
-			}
-			instanceData.push_back({offset, glm::vec2(side==1?scaleCenter:1.0,1.0), b.visible ? 1.0f : 0.0f, b.hover ? 1.0f : 0.0f, b.active ? 1.0f : 0.0f});
 		}
 		return instanceData;
 	}
 	
-	void alignButtons()
-	{
-		float scaleCenter;
-		for(ButtonData &b: buttonData)
-		{
-			b.alignedOffset=b.offset;
-			if(b.alignRight)
-			{
-				scaleCenter = getScaleCenter(b);
-				b.alignedOffset.x-=(btnWidth_L+btnWidth_R+btnWidth_C*scaleCenter)/Ar;
-			}
-		}
-		bool repeat;
-		bool aligned[buttonData.size()]={};
-		do
-		{
-			repeat = false;
-			int n=0;
-			for(ButtonData &b: buttonData)
-			{
-				if(!aligned[n])
-				{
-					if(b.adjacentButton==-1)
-					{
-						aligned[n]=true;
-					}
-					else
-					{
-						if(!aligned[b.adjacentButton])
-						{
-							repeat = true;
-						}
-						else
-						{
-							ButtonData adjb=buttonData[b.adjacentButton];
-							b.alignedOffset.x+=adjb.alignedOffset.x;
-							if(!b.alignRight)
-							{
-								scaleCenter = getScaleCenter(adjb);
-								b.alignedOffset.x+=(btnWidth_L+btnWidth_R+btnWidth_C*scaleCenter)/Ar;
-							}
-							aligned[n]=true;
-						}
-					}
-				}
-				n++;
-			}
-		} while(repeat);
-	}
-	
-	void updateBoundingBoxes()
-	{
-		boundingBoxes.clear();
-		float scaleCenter;
-		for(ButtonData &b: buttonData)
-		{
-			scaleCenter = getScaleCenter(b);
-			boundingBoxes.push_back({b.alignedOffset.x,b.alignedOffset.y,b.alignedOffset.x+(btnWidth_L+btnWidth_R+btnWidth_C*scaleCenter)/Ar,b.alignedOffset.y+btnHeight});
+	void alignButtons() {
+		for (Button &b : Buttons) {
+			b.align(true);
 		}
 	}
 
-	int detectButtonUnderMouse(float mouseX, float mouseY)
-	{
-		int i=0;
-		for(BoundingBox b: boundingBoxes)
-		{
-			if(buttonData[i].visible&&mouseX>=b.left&&mouseX<=b.right&&mouseY>=b.top&&mouseY<=b.bottom)
-			{
-				return i;
-			}
-			i++;
+	void updateBoundingBoxes() {
+		for (Button &b : Buttons) {
+			b.updateBoundingBox();
 		}
-		return -1;
 	}
 };
