@@ -51,6 +51,7 @@ Planet::Planet(float earth_eqradius, float earth_majaxis, float earth_rottime, f
     json planet_data = ss_data[planet_name];
     json earth_data = ss_data["earth"];
 
+    this->planet_name = planet_name;
     this->setShape(earth_eqradius, planet_data["shape"], earth_data["shape"]);
     this->setOrbit(earth_majaxis, planet_data["orbit"], earth_data["orbit"]);
     this->setSpeeds(earth_rottime, earth_revtime, planet_data["times"], earth_data["times"]);
@@ -82,6 +83,10 @@ void Planet::disableRevolution(){
 
     this->rev_active = false;
 
+}
+
+std::string Planet::getName() {
+	return planet_name;
 }
 
 glm::vec3 Planet::getSize(){

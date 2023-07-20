@@ -6,6 +6,7 @@
 #include "ButtonMaker.hpp"
 #include "Controller.hpp"
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/vector_angle.hpp>
 
 using namespace std::placeholders;
 
@@ -38,9 +39,10 @@ glm::vec3 vec4tovec3(glm::vec4 v)
 }
 
 template <typename T>
-T damp(T newVar, T oldVar, float deltaT, float factor=10)
+T damp(T newVar, T oldVar, float dampPerc)
 {
-	return oldVar*(float)pow(M_E,-factor*deltaT)+newVar*(float)(1-pow(M_E,-factor*deltaT));
+	dampPerc = pow((1-dampPerc),0.5f);
+	return oldVar*dampPerc+newVar*(1.f-dampPerc);
 }
 
 class SolarSystem3D;
@@ -53,6 +55,7 @@ class SolarSystem3D : public BaseProject {
 	float Ar; // current aspect ratio
 
 	TextMaker txt;
+	Controller *controller;
 
 	DescriptorSetLayout DSL; // descriptor layout
 	VertexDescriptor VD; // vertex format
@@ -64,6 +67,11 @@ class SolarSystem3D : public BaseProject {
 	Texture T_Su, T_Me, T_Ve, T_Ea, T_Ma, T_Ju, T_Sa, T_Ur, T_Ne;
 
 	UniformBufferObject ubo_Su, ubo_Me, ubo_Ve, ubo_Ea, ubo_Ma, ubo_Ju, ubo_Sa, ubo_Ur, ubo_Ne;
+
+	glm::mat4 WorldM = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, -10.f));
+	glm::mat4 ViewPrj;
+	glm::vec3 CamPos=glm::vec3(0);
+	glm::mat3 CamDir=glm::mat3(1);
 
 	// solar system parameters
 	const float sun_eqradius = 1.5f; // sun is not in scale with the other planets
@@ -98,8 +106,16 @@ class SolarSystem3D : public BaseProject {
 		app->_replaceText(targetButton, str+append);
 	}
 
-	static void updateScrollText(Button &button, float perc) {
-		app->_replaceText(button, std::to_string(static_cast<int>(perc * 100)) + "%");
+	static void updateScrollTextAndSelectPlanet(Button &button, float perc) {
+		app->_updateScrollTextAndSelectPlanet(button, perc);
+	}
+
+	void _updateScrollTextAndSelectPlanet(Button &button, float perc) {
+		int planetIndex=std::round(perc*(planets.size()-1));
+		std::string name=planets.at(planetIndex)->getName();
+		name[0] = std::toupper(name[0]);
+		_replaceText(button, name);
+		controller->setZoomedPlanetIndex(planetIndex);
 	}
 
 	static void replaceText(Button& button, std::string str) {
@@ -137,13 +153,12 @@ class SolarSystem3D : public BaseProject {
 		windowTitle = "Solar System 3D";
 		windowResizable = GLFW_TRUE;
 		initialBackgroundColor = { 0.0f, 0.005f, 0.01f, 1.0f };
+		Ar = (float) windowWidth / (float) windowHeight;
 
 		// Descriptor pool sizes
 		uniformBlocksInPool = 1 + 1 + 3 * buttonInfo.size() + 2 * (planets.size()+1); //orbit, text
 		texturesInPool = 1 + 3 * buttonInfo.size() + (planets.size()+1); //text
 		setsInPool = 1 + 1 + 3 * buttonInfo.size() + (planets.size()+1); //orbit, text
-
-		Ar = (float)windowWidth / (float)windowHeight;
 	}
 
 	void onWindowResize(int w, int h) {
@@ -151,6 +166,7 @@ class SolarSystem3D : public BaseProject {
 		windowWidth = w;
 		windowHeight = h;
 		txt.setAr(Ar);
+		controller->setWindowSize(w, h);
 	}
 
 	void localInit() {
@@ -168,7 +184,7 @@ class SolarSystem3D : public BaseProject {
 		});
 
 		P.init(this, &VD, "shaders/PlanetVert.spv", "shaders/PlanetFrag.spv", { &DSL });
-		P.setAdvancedFeatures(VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+		//P.setAdvancedFeatures(VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
 		createPlanetMesh(M_Su.vertices, M_Su.indices);
 		M_Su.initMesh(this, &VD);
@@ -213,11 +229,13 @@ class SolarSystem3D : public BaseProject {
 		buttons.push_back(*testButton2);
 		Button *scrollButton = new ScrollButton("Test scroll", {0.1,0}, false, {1,0});
 		buttons.push_back(*scrollButton);
-		Button *scrollKnob = new ScrollKnob(std::bind(updateScrollText,std::reference_wrapper<Button>(*scrollButton),_1), 10, 5, 0.82f, {0,0}, false, {(scrollButton->getFullWidth()-scrollButton->getInfo().marginHorizontal)/UI_Scale,0});
+		Button *scrollKnob = new ScrollKnob(std::bind(updateScrollTextAndSelectPlanet,std::reference_wrapper<Button>(*scrollButton),_1), planets.size()-1, 2, 0.82f, {0,0}, false, {(scrollButton->getFullWidth()-scrollButton->getInfo().marginHorizontal)/UI_Scale,0});
 		scrollKnob->setOffset({0.1,(362.f/800/2-scrollKnob->getInfo().height/2)*UI_Scale});
 		buttons.push_back(*scrollKnob);
 		txt.init(this, buttons, Ar);
 		txt.setButtonsActive({exampleToggleableProperty,true,true,true});
+
+		controller = new Controller(window, planets, buttons, windowWidth, windowHeight);
 	}
 
 	void pipelinesAndDescriptorSetsInit() {
@@ -374,11 +392,9 @@ class SolarSystem3D : public BaseProject {
 		glm::vec3 m = glm::vec3(0.0f); // motion in [-1,1] range (left stick of the gamepad, or ASWD + RF keys on the keyboard)
 		glm::vec3 r = glm::vec3(0.0f); // rotation in [-1,1] range (right stick of the gamepad, or Arrow keys + QE keys on the keyboard, or mouse)
 		bool fire = false; // true if fired has been pressed (SPACE on the keyboard, A or B button on the Gamepad, Right mouse button)
-		getSixAxis(deltaT, m, r, fire);
+		getSixAxis(deltaT, m, r, fire, false);
 
 		// instanciating controller
-		static Controller controller{window, planets, buttons};
-		ControllerActions currAction = controller.listenEvent();
 
 		/////////// WORLD MATRICES ///////////
 		
@@ -406,11 +422,10 @@ class SolarSystem3D : public BaseProject {
 		neptune.updatePosition(deltaT);
 		neptune.updateRotation(deltaT);
 
-		glm::mat4 WorldM = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, -10.f));
-
 		glm::mat4 WorldM_Su =	WorldM *
 								glm::scale(glm::mat4(1), glm::vec3(sun_eqradius));
 
+		//TODO doesn't make a difference in this case, but I think the world matrix should be put first in the chain
 		glm::mat4 WorldM_Me =	glm::translate(glm::mat4(1), mercury.getPosition()) * WorldM *
 								glm::rotate(glm::mat4(1), mercury.getRotation(), glm::vec3(-sin(mercury.getTilt()), cos(mercury.getTilt()), 0)) *
 								glm::rotate(glm::mat4(1), mercury.getTilt(), glm::vec3(0, 0, 1)) *
@@ -455,8 +470,8 @@ class SolarSystem3D : public BaseProject {
 
 		///////// VIEW MATRIX /////////
 		
-		glm::mat4 ViewM;
-		Planet *zoomedPlanet = controller.getZoomedPlanet();
+		glm::mat4 ViewM = createView();
+		/*Planet *zoomedPlanet = controller.getZoomedPlanet();
 
 		if (currAction == ZoomPlanet){
 
@@ -510,30 +525,17 @@ class SolarSystem3D : public BaseProject {
 
 			ViewM = ViewM_Reg;
 
-		}
+		}*/
 
 		///////// PROJECTION MATRIX /////////
 	
-		const float FOVy = glm::radians(90.0f);
+		const float FOVy = glm::radians(45.0f);
 		const float nearPlane = 0.1f;
 		const float farPlane = 1000.0f;
 
 		glm::mat4 ProjectionM = glm::perspective(FOVy, Ar, nearPlane, farPlane);
 		ProjectionM[1][1] *= -1;
-
-		/*
-		const float w = 10, nearPlane = 0.1f, farPlane = 100.f;
-		glm::mat4 ParallelM = glm::mat4(
-			1.0f / w, 0, 0, 0,
-			0, -Ar / w, 0, 0,
-			0, 0, 1.0f / (nearPlane - farPlane), 0,
-			0, 0, nearPlane / (nearPlane - farPlane), 1
-		);
-		glm::mat4 T1 = glm::rotate(glm::mat4(1), glm::radians(-45.0f), glm::vec3(0, 1, 0));
-		glm::mat4 T2 = glm::rotate(glm::mat4(1), glm::radians(30.0f), glm::vec3(1, 0, 0));
-		// glm::mat4 ProjectionM = ParallelM * T2 * T1;
-		glm::mat4 ProjectionM = ParallelM;
-		*/
+		ViewPrj=ProjectionM*ViewM;
 
 		/////// TRANSFORMATIONS APPLICATION ///////
 		GlobalUniformBufferObject gubo{};
@@ -597,6 +599,80 @@ class SolarSystem3D : public BaseProject {
 		DS_Ne.map(currentImage, &gubo, sizeof(gubo), 1);
 
 		txt.updateUniformBuffer(currentImage);
+	}
+
+	glm::mat4 createView() {
+		static glm::vec3 targetPos;
+		static glm::vec3 targetDir;
+		const float dampTime = 2.0f;
+
+		static float camDist;
+		static float damped;
+
+		const float ROT_SPEED = glm::radians(120.0f);
+		const float MOVE_SPEED = 2.0f;
+		float deltaT;
+		glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
+		bool fire;
+		bool update = false;
+
+		getSixAxis(deltaT, m, r, fire);
+
+		ControllerActions currAction = controller->listenEvent();
+		static ControllerActions lastAction = currAction;
+		Planet *zoomedPlanet = controller->getZoomedPlanet();
+		static Planet *lastZoomedPlanet = zoomedPlanet;
+		if (lastZoomedPlanet != zoomedPlanet) {
+			lastZoomedPlanet->enableRevolution();
+		}
+		if (lastAction != currAction || lastZoomedPlanet != zoomedPlanet) {
+			if (currAction == ZoomPlanet) {
+				zoomedPlanet->disableRevolution();
+				targetPos = zoomedPlanet->getPosition(); //Watch planet
+				targetPos -= glm::normalize(zoomedPlanet->getPosition()) * glm::vec3(4*zoomedPlanet->getSize().y); //Go back towards sun by factor proportional to planet radius
+				targetPos = vec4tovec3(WorldM * glm::vec4(targetPos, 1)); //Transform by world matrix
+				targetDir = -zoomedPlanet->getPosition();
+				damped = 0;
+			} else {
+				zoomedPlanet->enableRevolution();
+			}
+			lastAction = currAction;
+			lastZoomedPlanet = zoomedPlanet;
+		}
+		if (currAction == NoAction) {
+			CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), -r.x * deltaT * ROT_SPEED, glm::vec3(CamDir[0])) * glm::mat4(CamDir));
+			CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), -r.y * deltaT * ROT_SPEED, glm::vec3(CamDir[1])) * glm::mat4(CamDir));
+			CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), r.z * deltaT * ROT_SPEED, glm::vec3(CamDir[2])) * glm::mat4(CamDir));
+			CamPos += m.x * MOVE_SPEED * glm::vec3(CamDir[0]) * deltaT;
+			CamPos += m.y * MOVE_SPEED * glm::vec3(CamDir[1]) * deltaT;
+			CamPos -= m.z * MOVE_SPEED * glm::vec3(CamDir[2]) * deltaT;
+		} else {
+			if (damped < dampTime) {
+				CamPos = damp(targetPos, CamPos, damped / dampTime);
+				float angle = glm::orientedAngle(CamDir[2], glm::normalize(targetDir), glm::cross(CamDir[2], targetDir));
+				angle = damp(angle, 0.f, damped / dampTime);
+				CamDir = glm::rotate(angle, glm::cross(CamDir[2], targetDir)) * glm::mat4(CamDir);
+				if (CamDir[0].y != 0) {
+					//Fix z rotation
+					glm::vec3 targetAxis;
+					if (CamDir[2].y == 1) //z axis is vertical, set directly to correct target
+							{
+						targetAxis = glm::vec3(1, 0, 0);
+					} else {
+						targetAxis = glm::normalize(glm::cross(glm::vec3(0, 1, 0), CamDir[2]));
+					}
+					angle = glm::orientedAngle(CamDir[0], targetAxis, CamDir[2]);
+					if (std::abs(glm::degrees(angle)) > 1) {
+						angle = damp(angle, 0.f, damped / dampTime);
+						CamDir = glm::rotate(angle, CamDir[2]) * glm::mat4(CamDir);
+					}
+				}
+				damped += deltaT;
+			} else {
+				CamPos = targetPos;
+			}
+		}
+		return glm::translate(glm::transpose(glm::mat4(CamDir)), -CamPos);
 	}
 
 	void createPlanetMesh(std::vector<Vertex>& vDef, std::vector<uint32_t>& vIdx);

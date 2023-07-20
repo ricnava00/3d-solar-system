@@ -1,23 +1,29 @@
 #include "Controller.hpp"
 
-Controller::Controller(GLFWwindow *window, std::vector<Planet *> planets, std::vector<std::reference_wrapper<Button>> buttons){
+Controller::Controller(GLFWwindow *window, std::vector<Planet*> planets, std::vector<std::reference_wrapper<Button>> buttons, int windowWidth, int windowHeight) {
 	this->window = window;
     this->planets = planets;
     this->buttons = buttons;
+    setWindowSize(windowWidth, windowHeight);
     this->currAction = NoAction;
     this->zoomedPlanet = 0; // intialize to random value
 }
 
 void Controller::detectZoomedPlanet(){
 
-    this->zoomedPlanet = 2;
+    //this->zoomedPlanet = 2;
+
+}
+
+void Controller::setZoomedPlanetIndex(int index){
+
+    this->zoomedPlanet = index;
 
 }
 
 ControllerActions Controller::listenEvent() {
 
 	double xpos, ypos;
-	int windowWidth = 1280, windowHeight = 720;
 	glfwGetCursorPos(window, &xpos, &ypos);
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 		if (lastKey == -1) {
@@ -80,6 +86,6 @@ void Controller::processMouseNotPressed(float mouseX, float mouseY) {
 
 Planet *Controller::getZoomedPlanet(){
 
-    return this->planets[this->zoomedPlanet];
+	return this->planets[this->zoomedPlanet];
 
 }

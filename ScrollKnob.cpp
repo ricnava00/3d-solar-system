@@ -52,5 +52,5 @@ Geometry ScrollKnob::getSideGeometry(int side) {
 }
 
 int ScrollKnob::getStepFromMouseX(float mouseX) {
-	return std::max(0, std::min(static_cast<int>(((mouseX - Button::getSideGeometry(0).offset.x) / minSize.x * Ar - (1 - widthFactor) / 2) / widthFactor * steps + 0.5), steps));
+	return std::clamp(static_cast<int>(std::round(((mouseX - Button::getSideGeometry(0).offset.x) / minSize.x * Ar - (1 - widthFactor) / 2) / widthFactor * steps)), 0, steps);
 }

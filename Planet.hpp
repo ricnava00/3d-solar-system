@@ -10,7 +10,8 @@ using json = nlohmann::json;
 class Planet{
 
     private:
-        
+		std::string planet_name;
+
         // SHAPE
         float x_radius;
         float y_radius;
@@ -45,6 +46,7 @@ class Planet{
         void enableRevolution();
         void disableRevolution();
 
+        std::string getName();
         glm::vec3 getSize();
         glm::vec3 getPosition();
         float getTilt();

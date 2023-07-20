@@ -1802,7 +1802,7 @@ protected:
 		}
 	}
 		
-	void getSixAxis(float &deltaT, glm::vec3 &m, glm::vec3 &r, bool &fire) {
+	void getSixAxis(float &deltaT, glm::vec3 &m, glm::vec3 &r, bool &fire, bool resetDeltaT = true) {
 		static auto startTime = std::chrono::high_resolution_clock::now();
 		static float lastTime = 0.0f;
 		
@@ -1810,14 +1810,19 @@ protected:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>
 					(currentTime - startTime).count();
 		deltaT = time - lastTime;
-		lastTime = time;
+		if (resetDeltaT) {
+			lastTime = time;
+		}
 
 		static double old_xpos = 0, old_ypos = 0;
 		double xpos, ypos;
 		glfwGetCursorPos(window, &xpos, &ypos);
 		double m_dx = xpos - old_xpos;
 		double m_dy = ypos - old_ypos;
-		old_xpos = xpos; old_ypos = ypos;
+		if (resetDeltaT) {
+			old_xpos = xpos;
+			old_ypos = ypos;
+		}
 
 		const float MOUSE_RES = 10.0f;				
 		glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
