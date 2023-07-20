@@ -1,0 +1,184 @@
+{
+    "sun": {
+        "shape": {
+            "equatorial_radius": 696342,
+            "polar_radius": 696342
+        }
+    },
+
+    "mercury":{
+        "shape": {
+            "equatorial_radius": 2440.5,
+            "polar_radius": 2438.3,
+            "axial_tilt": 0.034
+        },
+        "orbit": {
+            "semi-major_axis": 57909050,
+            "eccentricity": 0.205630,
+            "aphelion": 69816900,
+            "aphelion_dir": "r",
+            "inclination": 3.38
+        },
+        "times": {
+            "sideral_orbital_period": 87.9691,
+            "synodic_rotation_period": 176
+        },
+        "light": {
+            "geometric_albedo": 0.142
+        }
+    },
+
+    "venus":{
+        "shape": {
+            "equatorial_radius": 6051.8,
+            "polar_radius": 6051.8,
+            "axial_tilt": 2.64
+        },
+        "orbit": {
+            "semi-major_axis": 108208000,
+            "eccentricity": 0.006772,
+            "aphelion": 108939000,
+            "aphelion_dir": "r",
+            "inclination": 3.86
+        },
+        "times": {
+            "sideral_orbital_period": 224.701,
+            "synodic_rotation_period": -116.75
+        },
+        "light": {
+            "geometric_albedo": 0.689
+        }
+    },
+
+    "earth":{
+        "shape": {
+            "equatorial_radius": 6378.137,
+            "polar_radius": 6356.752,
+            "axial_tilt": 23.4392811
+        },
+        "orbit": {
+            "semi-major_axis": 149598023,
+            "eccentricity": 0.0167086,
+            "aphelion": 152097597,
+            "aphelion_dir": "l",
+            "inclination": 7.155
+        },
+        "times": {
+            "sideral_orbital_period": 365.256363,
+            "synodic_rotation_period": 1
+        },
+        "light": {
+            "geometric_albedo": 0.367
+        }
+    },
+
+    "mars":{
+        "shape": {
+            "equatorial_radius": 3396.2,
+            "polar_radius": 3376.2,
+            "axial_tilt": 25.19
+        },
+        "orbit": {
+            "semi-major_axis": 227939366,
+            "eccentricity": 0.0934,
+            "aphelion": 249261000,
+            "aphelion_dir": "l",
+            "inclination": 5.65
+        },
+        "times": {
+            "sideral_orbital_period": 686.980,
+            "synodic_rotation_period": 1.02749125
+        },
+        "light": {
+            "geometric_albedo": 0.170
+        }
+    },
+
+    "jupiter":{
+        "shape": {
+            "equatorial_radius": 71492,
+            "polar_radius": 66854,
+            "axial_tilt": 3.13
+        },
+        "orbit": {
+            "semi-major_axis": 778479000,
+            "eccentricity": 0.0489,
+            "aphelion": 816363000,
+            "aphelion_dir": "r",
+            "inclination": 6.09
+        },
+        "times": {
+            "sideral_orbital_period": 4332.59,
+            "synodic_rotation_period": 0.413575
+        },
+        "light": {
+            "geometric_albedo": 0.538
+        }
+    },
+
+    "saturn":{
+        "shape": {
+            "equatorial_radius": 60268,
+            "polar_radius": 54364,
+            "axial_tilt": 26.73
+        },
+        "orbit": {
+            "semi-major_axis": 1433530000,
+            "eccentricity": 0.0565,
+            "aphelion": 1514500000,
+            "aphelion_dir": "r",
+            "inclination": 5.51
+        },
+        "times": {
+            "sideral_orbital_period": 10759.22,
+            "synodic_rotation_period": 0.4393042
+        },
+        "light": {
+            "geometric_albedo": 0.499
+        }
+    },
+
+    "uranus":{
+        "shape": {
+            "equatorial_radius": 25559,
+            "polar_radius": 24973,
+            "axial_tilt": 99.77
+        },
+        "orbit": {
+            "semi-major_axis": 2870971632.1,
+            "eccentricity": 0.04717,
+            "aphelion": 3006393609,
+            "aphelion_dir": "r",
+            "inclination": 6.48
+        },
+        "times": {
+            "sideral_orbital_period": 30688.5,
+            "synodic_rotation_period": -0.71832
+        },
+        "light": {
+            "geometric_albedo": 0.488
+        }
+    },
+
+    "neptune":{
+        "shape": {
+            "equatorial_radius": 24764,
+            "polar_radius": 24341,
+            "axial_tilt": 28.32
+        },
+        "orbit": {
+            "semi-major_axis": 4498408000,
+            "eccentricity": 0.008678,
+            "aphelion": 4537300000,
+            "aphelion_dir": "r",
+            "inclination": 6.43
+        },
+        "times": {
+            "sideral_orbital_period": 60195,
+            "synodic_rotation_period": 0.67125
+        },
+        "light": {
+            "geometric_albedo": 0.442
+        }
+    }
+}
