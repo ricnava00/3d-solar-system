@@ -19,22 +19,22 @@ void Controller::detectZoomedPlanet(){
 
 ControllerActions Controller::listenEvent(){
 
-    if ((glfwGetKey(this->window, GLFW_KEY_SPACE) == GLFW_PRESS) && !this->KEYPRESS){
-
-		this->KEYPRESS = true;
-        if (this->currAction == NoAction){
-            this->currAction = ZoomPlanet;
-            this->detectZoomedPlanet();
-        }
-        else if (this->currAction == ZoomPlanet)
-            this->currAction = NoAction;
-
+    if (glfwGetKey(this->window, GLFW_KEY_SPACE) == GLFW_PRESS){
+    	if(!this->KEYPRESS){
+			this->KEYPRESS = true;
+			if (this->currAction == NoAction){
+				this->currAction = ZoomPlanet;
+				this->detectZoomedPlanet();
+			}
+			else if (this->currAction == ZoomPlanet){
+				this->currAction = NoAction;
+			}
+    	}
 	}
-	else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+	else{
         this->KEYPRESS = false;
-
+	}
     return this->currAction;
-    
 }
 
 Planet *Controller::getZoomedPlanet(){

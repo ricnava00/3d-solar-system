@@ -1,6 +1,7 @@
 #include "Starter.hpp"
 #include "Planet.hpp"
 #include "Controller.hpp"
+#include <glm/gtx/string_cast.hpp>
 
 // #include "TextMaker.hpp"
 // #include "ButtonMaker.hpp"
@@ -11,11 +12,37 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 nMat; // normal matrix
 };
 
+struct GlobalUniformBufferObject {
+	alignas(16) glm::vec3 lightPos;
+	alignas(16) glm::vec4 lightColor;
+	alignas(16) glm::vec3 eyePos;
+};
+
 struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 norm;
 	glm::vec2 UV;
 };
+
+struct ColoredVertex {
+	glm::vec3 pos;
+	glm::vec3 color;
+};
+
+glm::vec3 vec4tovec3(glm::vec4 v)
+{
+	return glm::vec3(v/v.w);
+}
+
+template <typename T>
+T damp(T newVar, T oldVar, float deltaT, float factor=10)
+{
+	return oldVar*(float)pow(M_E,-factor*deltaT)+newVar*(float)(1-pow(M_E,-factor*deltaT));
+}
+
+class SolarSystem3D;
+
+SolarSystem3D *app;
 
 class SolarSystem3D : public BaseProject {
 	protected:
@@ -62,7 +89,7 @@ class SolarSystem3D : public BaseProject {
 		initialBackgroundColor = { 0.0f, 0.005f, 0.01f, 1.0f };
 
 		// Descriptor pool sizes
-		uniformBlocksInPool = 9;
+		uniformBlocksInPool = 18;
 		texturesInPool = 9;
 		setsInPool = 9;
 
@@ -75,8 +102,9 @@ class SolarSystem3D : public BaseProject {
 
 	void localInit() {
 		DSL.init(this, {
-			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
-			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
+			{1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
 		});
 
 		VD.init(this, {
@@ -86,8 +114,8 @@ class SolarSystem3D : public BaseProject {
 			{0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, UV), sizeof(glm::vec2), UV}
 		});
 
-		P.init(this, &VD, "shaders/ShaderVert.spv", "shaders/ShaderFrag.spv", { &DSL });
-		P.setAdvancedFeatures(VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false);
+		P.init(this, &VD, "shaders/PlanetVert.spv", "shaders/PlanetFrag.spv", { &DSL });
+		P.setAdvancedFeatures(VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
 		createPlanetMesh(M_Su.vertices, M_Su.indices);
 		M_Su.initMesh(this, &VD);
@@ -132,48 +160,57 @@ class SolarSystem3D : public BaseProject {
 
 		DS_Su.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-			{1, TEXTURE, 0, &T_Su}
+			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
+			{2, TEXTURE, 0, &T_Su}
 		});
 
 		
 		DS_Me.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-			{1, TEXTURE, 0, &T_Me}
+			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
+			{2, TEXTURE, 0, &T_Me}
 		});
 
 		DS_Ve.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-			{1, TEXTURE, 0, &T_Ve}
+			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
+			{2, TEXTURE, 0, &T_Ve}
 		});
 
 		DS_Ea.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-			{1, TEXTURE, 0, &T_Ea}
+			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
+			{2, TEXTURE, 0, &T_Ea}
 		});
 
 		DS_Ma.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-			{1, TEXTURE, 0, &T_Ma}
+			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
+			{2, TEXTURE, 0, &T_Ma}
 		});
 
 		DS_Ju.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-			{1, TEXTURE, 0, &T_Ju}
+			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
+			{2, TEXTURE, 0, &T_Ju}
 		});
 
 		DS_Sa.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-			{1, TEXTURE, 0, &T_Sa}
+			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
+			{2, TEXTURE, 0, &T_Sa}
 		});
 
 		DS_Ur.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-			{1, TEXTURE, 0, &T_Ur}
+			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
+			{2, TEXTURE, 0, &T_Ur}
 		});
 
 		DS_Ne.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-			{1, TEXTURE, 0, &T_Ne}
+			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
+			{2, TEXTURE, 0, &T_Ne}
 		});
 
 	}
@@ -354,7 +391,7 @@ class SolarSystem3D : public BaseProject {
 
 		if (currAction == ZoomPlanet){
 
-			(*zoomedPlanet).disableRevolution();
+			zoomedPlanet->disableRevolution();
 
 			// The camera is placed between the sun and the planet.
 			// The variable dist_perc contains the distance of the camera from the planet in percentage wrt the line connecting the sun with the planet
@@ -363,12 +400,12 @@ class SolarSystem3D : public BaseProject {
 
 			glm::vec3 cam_a = glm::vec3(			// camera target
 				WorldM *
-				glm::vec4((*zoomedPlanet).getPosition(), 1)
+				glm::vec4(zoomedPlanet->getPosition(), 1)
 			); 
 			glm::vec3 cam_u = glm::vec3(0, 1, 0);	// up vector
 			glm::vec3 cam_c = glm::vec3(			// camera center
 				WorldM *
-				glm::vec4((*zoomedPlanet).getPosition() * dist_perc, 1)
+				glm::vec4(zoomedPlanet->getPosition() * dist_perc, 1)
 			);
 
 			glm::mat4 ViewM_Zoom = glm::lookAt(cam_c, cam_a, cam_u);
@@ -378,7 +415,7 @@ class SolarSystem3D : public BaseProject {
 
 		else{
 
-			(*zoomedPlanet).enableRevolution();
+			zoomedPlanet->enableRevolution();
 
 			glm::vec3 cam_c = glm::vec3(0.f, 0.f, 0.f); // center of the camera
 			float cam_yaw = 0.f;
@@ -430,51 +467,65 @@ class SolarSystem3D : public BaseProject {
 		*/
 
 		/////// TRANSFORMATIONS APPLICATION ///////
+		GlobalUniformBufferObject gubo{};
 
-		ubo_Su.mvpMat = ProjectionM * ViewM * WorldM_Su;
-		ubo_Su.mMat = glm::mat4(1);
+		gubo.lightPos = vec4tovec3(WorldM_Su*glm::vec4(0, 0, 0, 1));
+		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.eyePos = vec4tovec3(glm::inverse(ViewM)*glm::vec4(0, 0, 0, 1));
+
+		ubo_Su.mMat = WorldM_Su;
+		ubo_Su.mvpMat = ProjectionM * ViewM * ubo_Su.mMat;
 		ubo_Su.nMat = glm::inverse(glm::transpose(ubo_Su.mMat));
 		DS_Su.map(currentImage, &ubo_Su, sizeof(ubo_Su), 0);
+		DS_Su.map(currentImage, &gubo, sizeof(gubo), 1);
 
-		ubo_Me.mvpMat = ProjectionM * ViewM * WorldM_Me;
-		ubo_Me.mMat = glm::mat4(1);
+		ubo_Me.mMat = WorldM_Me;
+		ubo_Me.mvpMat = ProjectionM * ViewM * ubo_Me.mMat;
 		ubo_Me.nMat = glm::inverse(glm::transpose(ubo_Me.mMat));
 		DS_Me.map(currentImage, &ubo_Me, sizeof(ubo_Me), 0);
+		DS_Me.map(currentImage, &gubo, sizeof(gubo), 1);
 
-		ubo_Ve.mvpMat = ProjectionM * ViewM * WorldM_Ve;
-		ubo_Ve.mMat = glm::mat4(1);
+		ubo_Ve.mMat = WorldM_Ve;
+		ubo_Ve.mvpMat = ProjectionM * ViewM * ubo_Ve.mMat;
 		ubo_Ve.nMat = glm::inverse(glm::transpose(ubo_Ve.mMat));
 		DS_Ve.map(currentImage, &ubo_Ve, sizeof(ubo_Ve), 0);
+		DS_Ve.map(currentImage, &gubo, sizeof(gubo), 1);
 
-		ubo_Ea.mvpMat = ProjectionM * ViewM * WorldM_Ea;
-		ubo_Ea.mMat = glm::mat4(1);
+		ubo_Ea.mMat = WorldM_Ea;
+		ubo_Ea.mvpMat = ProjectionM * ViewM * ubo_Ea.mMat;
 		ubo_Ea.nMat = glm::inverse(glm::transpose(ubo_Ea.mMat));
 		DS_Ea.map(currentImage, &ubo_Ea, sizeof(ubo_Ea), 0);
+		DS_Ea.map(currentImage, &gubo, sizeof(gubo), 1);
 
-		ubo_Ma.mvpMat = ProjectionM * ViewM * WorldM_Ma;
-		ubo_Ma.mMat = glm::mat4(1);
+		ubo_Ma.mMat = WorldM_Ma;
+		ubo_Ma.mvpMat = ProjectionM * ViewM * ubo_Ma.mMat;
 		ubo_Ma.nMat = glm::inverse(glm::transpose(ubo_Ma.mMat));
 		DS_Ma.map(currentImage, &ubo_Ma, sizeof(ubo_Ma), 0);
+		DS_Ma.map(currentImage, &gubo, sizeof(gubo), 1);
 
-		ubo_Ju.mvpMat = ProjectionM * ViewM * WorldM_Ju;
-		ubo_Ju.mMat = glm::mat4(1);
+		ubo_Ju.mMat = WorldM_Ju;
+		ubo_Ju.mvpMat = ProjectionM * ViewM * ubo_Ju.mMat;
 		ubo_Ju.nMat = glm::inverse(glm::transpose(ubo_Ju.mMat));
 		DS_Ju.map(currentImage, &ubo_Ju, sizeof(ubo_Ju), 0);
+		DS_Ju.map(currentImage, &gubo, sizeof(gubo), 1);
 
-		ubo_Sa.mvpMat = ProjectionM * ViewM * WorldM_Sa;
-		ubo_Sa.mMat = glm::mat4(1);
+		ubo_Sa.mMat = WorldM_Sa;
+		ubo_Sa.mvpMat = ProjectionM * ViewM * ubo_Sa.mMat;
 		ubo_Sa.nMat = glm::inverse(glm::transpose(ubo_Sa.mMat));
 		DS_Sa.map(currentImage, &ubo_Sa, sizeof(ubo_Sa), 0);
+		DS_Sa.map(currentImage, &gubo, sizeof(gubo), 1);
 
-		ubo_Ur.mvpMat = ProjectionM * ViewM * WorldM_Ur;
-		ubo_Ur.mMat = glm::mat4(1);
+		ubo_Ur.mMat = WorldM_Ur;
+		ubo_Ur.mvpMat = ProjectionM * ViewM * ubo_Ur.mMat;
 		ubo_Ur.nMat = glm::inverse(glm::transpose(ubo_Ur.mMat));
 		DS_Ur.map(currentImage, &ubo_Ur, sizeof(ubo_Ur), 0);
+		DS_Ur.map(currentImage, &gubo, sizeof(gubo), 1);
 
-		ubo_Ne.mvpMat = ProjectionM * ViewM * WorldM_Ne;
-		ubo_Ne.mMat = glm::mat4(1);
+		ubo_Ne.mMat = WorldM_Ne;
+		ubo_Ne.mvpMat = ProjectionM * ViewM * ubo_Ne.mMat;
 		ubo_Ne.nMat = glm::inverse(glm::transpose(ubo_Ne.mMat));
 		DS_Ne.map(currentImage, &ubo_Ne, sizeof(ubo_Ne), 0);
+		DS_Ne.map(currentImage, &gubo, sizeof(gubo), 1);
 
 	}
 
@@ -485,15 +536,12 @@ class SolarSystem3D : public BaseProject {
 #include "meshGenerator.hpp"
 
 int main() {
-	SolarSystem3D app;
-
+	app = new SolarSystem3D();
 	try {
-		app.run();
-	}
-	catch (const std::exception& e) {
+		app->run();
+	} catch (const std::exception &e) {
 		std::cerr << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
-
 	return EXIT_SUCCESS;
 }

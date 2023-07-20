@@ -1,14 +1,14 @@
 .PHONY: all
 
 FRAGIN:=$(wildcard *.frag)
-FRAG:=$(FRAGIN:.frag=.spv)
+FRAG:=$(FRAGIN:.frag=Frag.spv)
 VERTIN:=$(wildcard *.vert)
-VERT:=$(VERTIN:.vert=.spv)
+VERT:=$(VERTIN:.vert=Vert.spv)
 
 all:$(FRAG) $(VERT)
 
-$(VERT):%.spv:%.vert
+$(VERT):%Vert.spv:%.vert
 	glslc $< -o $@
 
-$(FRAG):%.spv:%.frag
+$(FRAG):%Frag.spv:%.frag
 	glslc $< -o $@

@@ -1,14 +1,23 @@
+MAKEFLAGS += --no-builtin-rules
+
 PROGRAM = SolarSystem3D
-LIB = headers
-LINK = Planet.cpp Controller.cpp
 
-CFLAGS = -std=c++17 -O2
+SOURCES = $(PROGRAM).cpp Planet.cpp Controller.cpp# Button.cpp ScrollButton.cpp ScrollKnob.cpp
+CFLAGS = -std=c++17 -O0
 LDFLAGS = -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi
+INC = -Iheaders
 
-SolarSystem3D: $(PROGRAM).cpp
-	g++ $(CFLAGS) -I$(LIB) -o $(PROGRAM) $(PROGRAM).cpp $(LINK) $(LDFLAGS)
+.PHONY: all shaders build run clean
 
-.PHONY: run clean
+all: clean build shaders run $(PROGRAM)
+
+$(PROGRAM): build
+
+build: $(SOURCES)
+	g++ $(CFLAGS) $(INC) -o $(PROGRAM) $? $(LDFLAGS)
+
+shaders:
+	$(MAKE) -C shaders all
 
 run: $(PROGRAM)
 	./$(PROGRAM)

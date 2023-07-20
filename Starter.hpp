@@ -285,6 +285,7 @@ struct Pipeline {
 	VkPolygonMode polyModel;
  	VkCullModeFlagBits CM;
  	bool transp;
+ 	VkPrimitiveTopology topology;
 	
 	VertexDescriptor *VD;
   	
@@ -292,7 +293,7 @@ struct Pipeline {
 			  const std::string& VertShader, const std::string& FragShader,
   			  std::vector<DescriptorSetLayout *> D);
   	void setAdvancedFeatures(VkCompareOp _compareOp, VkPolygonMode _polyModel,
- 						VkCullModeFlagBits _CM, bool _transp);
+ 						VkCullModeFlagBits _CM, bool _transp, VkPrimitiveTopology topology);
   	void create();
   	void destroy();
   	void bind(VkCommandBuffer commandBuffer);
@@ -362,7 +363,9 @@ protected:
 
 	VkSurfaceKHR surface;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+public:
     VkDevice device;
+protected:
     VkQueue graphicsQueue;
     VkQueue presentQueue;
 	VkCommandPool commandPool;
@@ -474,7 +477,7 @@ std::cout << "Starting createInstance()\n"  << std::flush;
 			static_cast<uint32_t>(extensions.size());
 		createInfo.ppEnabledExtensionNames = extensions.data();		
 
-		createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+		//createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 		
 		if (!checkValidationLayerSupport()) {
 			throw std::runtime_error("validation layers requested, but not available!");
@@ -508,10 +511,10 @@ std::cout << "Starting createInstance()\n"  << std::flush;
 			
 		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);		
 		
-		if(checkIfItHasExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
+		/*if(checkIfItHasExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
 			extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 
-		}
+		}*/
 		if(checkIfItHasExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)) {
 			extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 		}
@@ -829,6 +832,8 @@ std::cout << "Starting createInstance()\n"  << std::flush;
 		VkPhysicalDeviceFeatures deviceFeatures{};
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
 		deviceFeatures.sampleRateShading = VK_TRUE;
+		deviceFeatures.wideLines = VK_TRUE;
+		deviceFeatures.fillModeNonSolid = VK_TRUE;
 		
 		VkDeviceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -932,11 +937,11 @@ std::cout << "Starting createInstance()\n"  << std::flush;
 
 	VkPresentModeKHR chooseSwapPresentMode(
 			const std::vector<VkPresentModeKHR>& availablePresentModes) {
-		for (const auto& availablePresentMode : availablePresentModes) {
+		/*for (const auto& availablePresentMode : availablePresentModes) {
 			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 				return availablePresentMode;
 			}
-		}
+		}*/
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 	
@@ -1430,6 +1435,7 @@ std::cout << "Starting createInstance()\n"  << std::flush;
 		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 	}
 	
+public:
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 					  VkMemoryPropertyFlags properties,
 					  VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
@@ -1465,6 +1471,7 @@ std::cout << "Starting createInstance()\n"  << std::flush;
 		vkBindBufferMemory(device, buffer, bufferMemory, 0);	
 	}
 	
+protected:
 	uint32_t findMemoryType(uint32_t typeFilter,
 							VkMemoryPropertyFlags properties) {
 		 VkPhysicalDeviceMemoryProperties memProperties;
@@ -1910,7 +1917,7 @@ void VertexDescriptor::init(BaseProject *bp, std::vector<VertexBindingDescriptor
 	Color.hasIt = false; Color.offset = 0;
 	Tangent.hasIt = false; Tangent.offset = 0;
 	
-	if(B.size() == 1) {	// for now, read models only with every vertex information in a single binding
+	if(true||B.size() == 1) {	// for now, read models only with every vertex information in a single binding
 		for(int i = 0; i < E.size(); i++) {
 			switch(E[i].usage) {
 			  case VertexDescriptorElementUsage::POSITION:
@@ -2530,16 +2537,18 @@ void Pipeline::init(BaseProject *bp, VertexDescriptor *vd,
  	polyModel = VK_POLYGON_MODE_FILL;
  	CM = VK_CULL_MODE_BACK_BIT;
  	transp = false;
+ 	topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
 	D = d;
 }
 
 void Pipeline::setAdvancedFeatures(VkCompareOp _compareOp, VkPolygonMode _polyModel,
- 								   VkCullModeFlagBits _CM, bool _transp) {
+ 								   VkCullModeFlagBits _CM, bool _transp, VkPrimitiveTopology _topology) {
  	compareOp = _compareOp;
  	polyModel = _polyModel;
  	CM = _CM;
  	transp = _transp;
+ 	topology = _topology;
 }
 
 
@@ -2577,7 +2586,7 @@ void Pipeline::create() {
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 	inputAssembly.sType =
 		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	inputAssembly.topology = topology;
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	VkViewport viewport{};
@@ -2655,6 +2664,17 @@ void Pipeline::create() {
 	colorBlending.blendConstants[1] = 0.0f; // Optional
 	colorBlending.blendConstants[2] = 0.0f; // Optional
 	colorBlending.blendConstants[3] = 0.0f; // Optional
+
+	VkDynamicState dynamicStates = {
+		VK_DYNAMIC_STATE_LINE_WIDTH
+	};
+
+	VkPipelineDynamicStateCreateInfo dynamicState{};
+	dynamicState.sType =
+			VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamicState.pNext = nullptr;
+	dynamicState.dynamicStateCount = 1;
+	dynamicState.pDynamicStates = &dynamicStates;
 	
 	std::vector<VkDescriptorSetLayout> DSL(D.size());
 	for(int i = 0; i < D.size(); i++) {
@@ -2701,7 +2721,7 @@ void Pipeline::create() {
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pDepthStencilState = &depthStencil;
 	pipelineInfo.pColorBlendState = &colorBlending;
-	pipelineInfo.pDynamicState = nullptr; // Optional
+	pipelineInfo.pDynamicState = &dynamicState;
 	pipelineInfo.layout = pipelineLayout;
 	pipelineInfo.renderPass = BP->renderPass;
 	pipelineInfo.subpass = 0;
