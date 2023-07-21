@@ -62,12 +62,14 @@ class SolarSystem3D : public BaseProject {
 	Pipeline P; // pipeline
 
 	// models, textures and descriptors
-	Model<Vertex> M_Su, M_Me, M_Ve, M_Ea, M_Ma, M_Ju, M_Sa, M_Ur, M_Ne;
+	Model<Vertex> M_Planet;
 	DescriptorSet DS_Su, DS_Me, DS_Ve, DS_Ea, DS_Ma, DS_Ju, DS_Sa, DS_Ur, DS_Ne;
 	Texture T_Su, T_Me, T_Ve, T_Ea, T_Ma, T_Ju, T_Sa, T_Ur, T_Ne;
 
 	UniformBufferObject ubo_Su, ubo_Me, ubo_Ve, ubo_Ea, ubo_Ma, ubo_Ju, ubo_Sa, ubo_Ur, ubo_Ne;
 
+	const float nearPlane = 0.1f;
+	const float farPlane = 1000.0f;
 	glm::mat4 WorldM = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, -10.f));
 	glm::mat4 ViewPrj;
 	glm::vec3 CamPos=glm::vec3(0);
@@ -186,33 +188,9 @@ class SolarSystem3D : public BaseProject {
 		P.init(this, &VD, "shaders/PlanetVert.spv", "shaders/PlanetFrag.spv", { &DSL });
 		//P.setAdvancedFeatures(VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-		createPlanetMesh(M_Su.vertices, M_Su.indices);
-		M_Su.initMesh(this, &VD);
+		createPlanetMesh(M_Planet.vertices, M_Planet.indices);
+		M_Planet.initMesh(this, &VD);
 
-		createPlanetMesh(M_Me.vertices, M_Me.indices);
-		M_Me.initMesh(this, &VD);
-
-		createPlanetMesh(M_Ve.vertices, M_Ve.indices);
-		M_Ve.initMesh(this, &VD);
-
-		createPlanetMesh(M_Ea.vertices, M_Ea.indices);
-		M_Ea.initMesh(this, &VD);
-
-		createPlanetMesh(M_Ma.vertices, M_Ma.indices);
-		M_Ma.initMesh(this, &VD);
-
-		createPlanetMesh(M_Ju.vertices, M_Ju.indices);
-		M_Ju.initMesh(this, &VD);
-
-		createPlanetMesh(M_Sa.vertices, M_Sa.indices);
-		M_Sa.initMesh(this, &VD);
-
-		createPlanetMesh(M_Ur.vertices, M_Ur.indices);
-		M_Ur.initMesh(this, &VD);
-
-		createPlanetMesh(M_Ne.vertices, M_Ne.indices);
-		M_Ne.initMesh(this, &VD);
-		
 		T_Su.init(this, "textures/sun.jpg");
 		T_Me.init(this, "textures/planets/mercury.jpg");
 		T_Ve.init(this, "textures/planets/venus.jpg");
@@ -235,7 +213,7 @@ class SolarSystem3D : public BaseProject {
 		txt.init(this, buttons, Ar);
 		txt.setButtonsActive({exampleToggleableProperty,true,true,true});
 
-		controller = new Controller(window, planets, buttons, windowWidth, windowHeight);
+		controller = new Controller(window, planets, buttons, tryClickPlanet, windowWidth, windowHeight);
 	}
 
 	void pipelinesAndDescriptorSetsInit() {
@@ -325,15 +303,7 @@ class SolarSystem3D : public BaseProject {
 		T_Ur.cleanup();
 		T_Ne.cleanup();
 
-		M_Su.cleanup();
-		M_Me.cleanup();
-		M_Ve.cleanup();
-		M_Ea.cleanup();
-		M_Ma.cleanup();
-		M_Ju.cleanup();
-		M_Sa.cleanup();
-		M_Ur.cleanup();
-		M_Ne.cleanup();
+		M_Planet.cleanup();
 
 		DSL.cleanup();
 
@@ -344,41 +314,34 @@ class SolarSystem3D : public BaseProject {
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
 		P.bind(commandBuffer);
 
+		M_Planet.bind(commandBuffer);
+
 		DS_Su.bind(commandBuffer, P, 0, currentImage);
-		M_Su.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Su.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
 
 		DS_Me.bind(commandBuffer, P, 0, currentImage);
-		M_Me.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Me.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
 		
 		DS_Ve.bind(commandBuffer, P, 0, currentImage);
-		M_Ve.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Ve.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
 
 		DS_Ea.bind(commandBuffer, P, 0, currentImage);
-		M_Ea.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Ea.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
 
 		DS_Ma.bind(commandBuffer, P, 0, currentImage);
-		M_Ma.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Ma.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
 
 		DS_Ju.bind(commandBuffer, P, 0, currentImage);
-		M_Ju.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Ju.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
 
 		DS_Sa.bind(commandBuffer, P, 0, currentImage);
-		M_Sa.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Sa.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
 
 		DS_Ur.bind(commandBuffer, P, 0, currentImage);
-		M_Ur.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Ur.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
 
 		DS_Ne.bind(commandBuffer, P, 0, currentImage);
-		M_Ne.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Ne.indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
 
 		txt.populateCommandBuffer(commandBuffer, currentImage);
 	}
@@ -394,7 +357,7 @@ class SolarSystem3D : public BaseProject {
 		bool fire = false; // true if fired has been pressed (SPACE on the keyboard, A or B button on the Gamepad, Right mouse button)
 		getSixAxis(deltaT, m, r, fire, false);
 
-		// instanciating controller
+		// instantiating controller
 
 		/////////// WORLD MATRICES ///////////
 		
@@ -528,10 +491,7 @@ class SolarSystem3D : public BaseProject {
 		}*/
 
 		///////// PROJECTION MATRIX /////////
-	
 		const float FOVy = glm::radians(45.0f);
-		const float nearPlane = 0.1f;
-		const float farPlane = 1000.0f;
 
 		glm::mat4 ProjectionM = glm::perspective(FOVy, Ar, nearPlane, farPlane);
 		ProjectionM[1][1] *= -1;
@@ -675,7 +635,56 @@ class SolarSystem3D : public BaseProject {
 		return glm::translate(glm::transpose(glm::mat4(CamDir)), -CamPos);
 	}
 
-	void createPlanetMesh(std::vector<Vertex>& vDef, std::vector<uint32_t>& vIdx);
+	static int tryClickPlanet(float mouseX, float mouseY) {
+		return app->_tryClickPlanet(mouseX, mouseY);
+	}
+
+	//http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-a-physics-library/
+	/** Finds the closest clicked planet (if any) and zooms in on it */
+	int _tryClickPlanet(float mouseX, float mouseY) {
+		glm::vec4 rayStart_NDC(mouseX, mouseY, nearPlane, 1.0f);
+		glm::vec4 rayEnd_NDC(mouseX, mouseY, farPlane, 1.0f);
+
+		glm::mat4 InverseViewProj = glm::inverse(ViewPrj);
+
+		glm::vec3 rayStart_world = vec4tovec3(InverseViewProj * rayStart_NDC);
+		glm::vec3 rayEnd_world = vec4tovec3(InverseViewProj * rayEnd_NDC);
+		glm::vec3 rayDir_world = glm::normalize(rayEnd_world - rayStart_world);
+
+		int found = -1;
+		float minDistance = FLT_MAX;
+		float distance;
+		int n=0;
+		for (Planet *p : planets) {
+			float planetScale = 1; //TODO slider scale
+			distance = raySphereIntersect(rayStart_world, rayDir_world, glm::vec3(
+					WorldM *
+					glm::translate(glm::mat4(1), p->getPosition()) *
+					glm::scale(glm::mat4(1), glm::vec3(planetScale)) * glm::vec4(0, 0, 0, 1)),
+					p->getSize().y * planetScale);
+			if (distance >= 0 && distance < minDistance) {
+				found = n;
+				minDistance = distance;
+			}
+			n++;
+		}
+		return found;
+	}
+
+	//https://iquilezles.org/articles/intersectors/
+	/** If the ray intersects the sphere, returns the distance from the ray origin to the closest intersection point. Otherwise returns -1 */
+	static float raySphereIntersect(glm::vec3 rayOrigin, glm::vec3 rayDirection, glm::vec3 sphereCenter, float sphereRadius) {
+		glm::vec3 oc = rayOrigin - sphereCenter;
+		float b = dot(oc, rayDirection);
+		glm::vec3 qc = oc - b * rayDirection;
+		float h = sphereRadius * sphereRadius - dot(qc, qc);
+		if (h < 0.0)
+			return -1.0; // no intersection
+		h = sqrt(h);
+		return b - h;
+	}
+
+	void createPlanetMesh(std::vector<Vertex> &vDef, std::vector<uint32_t> &vIdx);
 
 };
 

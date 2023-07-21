@@ -443,6 +443,7 @@ struct TextMaker {
 				std::cout << fl << " ";
 			}
 			std::cout << std::endl;
+			exit(1);
 		}
 		PButtons.bind(commandBuffer);
 		for (int n = 0; n < buttonInfo.size() * 3; n++) {

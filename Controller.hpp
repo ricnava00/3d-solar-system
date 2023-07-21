@@ -17,6 +17,7 @@ class Controller{
     private:
 		GLFWwindow *window;
 		int windowWidth, windowHeight;
+		std::function<int(float,float)> tryClickPlanet;
         std::vector<Planet *> planets;
         std::vector<std::reference_wrapper<Button>> buttons;
         int lastKey = 0;
@@ -24,11 +25,9 @@ class Controller{
         ControllerActions currAction;
         int zoomedPlanet; // identifier of the planet currently zoomed
 
-        void detectZoomedPlanet();
-
     public:
 
-        Controller(GLFWwindow *window, std::vector<Planet *> planets, std::vector<std::reference_wrapper<Button>> buttons, int windowWidth, int windowHeight);
+        Controller(GLFWwindow *window, std::vector<Planet *> planets, std::vector<std::reference_wrapper<Button>> buttons, std::function<int(float,float)> clickPlanet, int windowWidth, int windowHeight);
 
 		void setWindowSize(int windowWidth, int windowHeight) {
 			this->windowWidth = windowWidth;
