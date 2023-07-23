@@ -99,3 +99,22 @@ void SolarSystem3D::createPlanetMesh(std::vector<Vertex>& vDef, std::vector<uint
     connectPole(start_idx + 2*n_sectors, start_idx + n_sectors, n_sectors,1);
 
 }
+
+
+void SolarSystem3D::createTextMesh(std::vector<VertexText>& vDef, std::vector<uint32_t>& vIdx) {
+
+    int texture_width = 1280;
+    int texture_height = 720;
+
+    float mesh_width = 2.f;
+    float mesh_height = mesh_width * texture_height / texture_width;
+
+    vDef.push_back({ {- mesh_width / 2, mesh_height / 2, 0}, {0, 0} });
+    vDef.push_back({ {mesh_width / 2, mesh_height / 2, 0}, {1, 0} });
+    vDef.push_back({ {- mesh_width / 2, - mesh_height / 2, 0}, {0, 1} });
+    vDef.push_back({ {mesh_width / 2, - mesh_height / 2, 0}, {1, 1} });
+
+    vIdx.push_back(0); vIdx.push_back(1); vIdx.push_back(2);
+    vIdx.push_back(1); vIdx.push_back(2); vIdx.push_back(3);
+
+}

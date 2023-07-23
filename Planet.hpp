@@ -52,4 +52,9 @@ class Planet{
         float getTilt();
         float getRotation();
 
+        // controller features
+        float getZoomDistance();
+        glm::vec3 getNameSize();
+        glm::vec3 getNamePosition();
+
 };

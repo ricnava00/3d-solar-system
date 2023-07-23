@@ -33,6 +33,11 @@ struct ColoredVertex {
 	glm::vec3 color;
 };
 
+struct VertexText{
+	glm::vec3 pos;
+	glm::vec2 UV;
+};
+
 glm::vec3 vec4tovec3(glm::vec4 v)
 {
 	return glm::vec3(v/v.w);
@@ -57,16 +62,20 @@ class SolarSystem3D : public BaseProject {
 	TextMaker txt;
 	Controller *controller;
 
-	DescriptorSetLayout DSL; // descriptor layout
-	VertexDescriptor VD; // vertex format
-	Pipeline P; // pipeline
+	DescriptorSetLayout DSL, DSLT; // descriptor layout
+	VertexDescriptor VD, VDT; // vertex format
+	Pipeline P, PT; // pipeline
 
 	// models, textures and descriptors
 	Model<Vertex> M_Planet;
+	Model<VertexText> M_PlanetTe;
 	DescriptorSet DS_Su, DS_Me, DS_Ve, DS_Ea, DS_Ma, DS_Ju, DS_Sa, DS_Ur, DS_Ne;
+	DescriptorSet DS_MeTe, DS_VeTe, DS_EaTe, DS_MaTe, DS_JuTe, DS_SaTe, DS_UrTe, DS_NeTe;
 	Texture T_Su, T_Me, T_Ve, T_Ea, T_Ma, T_Ju, T_Sa, T_Ur, T_Ne;
+	Texture T_MeTe, T_VeTe, T_EaTe, T_MaTe, T_JuTe, T_SaTe, T_UrTe, T_NeTe;
 
 	UniformBufferObject ubo_Su, ubo_Me, ubo_Ve, ubo_Ea, ubo_Ma, ubo_Ju, ubo_Sa, ubo_Ur, ubo_Ne;
+	UniformBufferObject ubo_MeTe, ubo_VeTe, ubo_EaTe, ubo_MaTe, ubo_JuTe, ubo_SaTe, ubo_UrTe, ubo_NeTe;
 
 	const float nearPlane = 0.1f;
 	const float farPlane = 1000.0f;
@@ -158,9 +167,9 @@ class SolarSystem3D : public BaseProject {
 		Ar = (float) windowWidth / (float) windowHeight;
 
 		// Descriptor pool sizes
-		uniformBlocksInPool = 1 + 1 + 3 * buttonInfo.size() + 2 * (planets.size()+1); //orbit, text
-		texturesInPool = 1 + 3 * buttonInfo.size() + (planets.size()+1); //text
-		setsInPool = 1 + 1 + 3 * buttonInfo.size() + (planets.size()+1); //orbit, text
+		uniformBlocksInPool = 1 + 1 + 3 * buttonInfo.size() + 2 * (planets.size()*2+1); //orbit, text
+		texturesInPool = 1 + 3 * buttonInfo.size() + (planets.size()*2+1); //text
+		setsInPool = 1 + 1 + 3 * buttonInfo.size() + (planets.size()*2+1); //orbit, text
 	}
 
 	void onWindowResize(int w, int h) {
@@ -178,6 +187,11 @@ class SolarSystem3D : public BaseProject {
 			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
 		});
 
+		DSLT.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
+		});
+
 		VD.init(this, {
 			{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX} },
 			{ {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos), sizeof(glm::vec3), POSITION},
@@ -185,11 +199,23 @@ class SolarSystem3D : public BaseProject {
 			{0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, UV), sizeof(glm::vec2), UV}
 		});
 
+		VDT.init(this, {
+			{0, sizeof(VertexText), VK_VERTEX_INPUT_RATE_VERTEX} },
+			{ {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexText, pos), sizeof(glm::vec3), POSITION},
+			{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(VertexText, UV), sizeof(glm::vec2), UV}
+		});
+
 		P.init(this, &VD, "shaders/PlanetVert.spv", "shaders/PlanetFrag.spv", { &DSL });
 		//P.setAdvancedFeatures(VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, false, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
+		PT.init(this, &VDT, "shaders/NameVert.spv", "shaders/NameFrag.spv", { &DSLT });
+		PT.setAdvancedFeatures(VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
 		createPlanetMesh(M_Planet.vertices, M_Planet.indices);
 		M_Planet.initMesh(this, &VD);
+
+		createTextMesh(M_PlanetTe.vertices, M_PlanetTe.indices);
+		M_PlanetTe.initMesh(this, &VDT);
 
 		T_Su.init(this, "textures/sun.jpg");
 		T_Me.init(this, "textures/planets/mercury.jpg");
@@ -200,6 +226,15 @@ class SolarSystem3D : public BaseProject {
 		T_Sa.init(this, "textures/planets/saturn.jpg");
 		T_Ur.init(this, "textures/planets/uranus.jpg");
 		T_Ne.init(this, "textures/planets/neptune.jpg");
+
+		T_MeTe.init(this, "textures/texts/mercury.png");
+		T_VeTe.init(this, "textures/texts/venus.png");
+		T_EaTe.init(this, "textures/texts/earth.png");
+		T_MaTe.init(this, "textures/texts/mars.png");
+		T_JuTe.init(this, "textures/texts/jupiter.png");
+		T_SaTe.init(this, "textures/texts/saturn.png");
+		T_UrTe.init(this, "textures/texts/uranus.png");
+		T_NeTe.init(this, "textures/texts/neptune.png");
 
 		Button *testButton = new Button(toggleWhenClicked, "Test toggle", {-1,-1}, false, {2,0});
 		buttons.push_back(*testButton);
@@ -218,6 +253,7 @@ class SolarSystem3D : public BaseProject {
 
 	void pipelinesAndDescriptorSetsInit() {
 		P.create();
+		PT.create();
 
 		DS_Su.init(this, &DSL, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
@@ -274,11 +310,52 @@ class SolarSystem3D : public BaseProject {
 			{2, TEXTURE, 0, &T_Ne}
 		});
 
+		DS_MeTe.init(this, &DSLT, {
+			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+			{1, TEXTURE, 0, &T_MeTe}
+		});
+
+		DS_VeTe.init(this, &DSLT, {
+			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+			{1, TEXTURE, 0, &T_VeTe}
+		});
+
+		DS_EaTe.init(this, &DSLT, {
+			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+			{1, TEXTURE, 0, &T_EaTe}
+		});
+
+		DS_MaTe.init(this, &DSLT, {
+			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+			{1, TEXTURE, 0, &T_MaTe}
+		});
+
+		DS_JuTe.init(this, &DSLT, {
+			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+			{1, TEXTURE, 0, &T_JuTe}
+		});
+
+		DS_SaTe.init(this, &DSLT, {
+			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+			{1, TEXTURE, 0, &T_SaTe}
+		});
+
+		DS_UrTe.init(this, &DSLT, {
+			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+			{1, TEXTURE, 0, &T_UrTe}
+		});
+
+		DS_NeTe.init(this, &DSLT, {
+			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+			{1, TEXTURE, 0, &T_NeTe}
+		});
+
 		txt.pipelinesAndDescriptorSetsInit();
 	}
 
 	void pipelinesAndDescriptorSetsCleanup() {
 		P.cleanup();
+		PT.cleanup();
 
 		DS_Su.cleanup();
 		DS_Me.cleanup();
@@ -290,6 +367,15 @@ class SolarSystem3D : public BaseProject {
 		DS_Ur.cleanup();
 		DS_Ne.cleanup();
 		txt.pipelinesAndDescriptorSetsCleanup();
+
+		DS_MeTe.cleanup();
+		DS_VeTe.cleanup();
+		DS_EaTe.cleanup();
+		DS_MaTe.cleanup();
+		DS_JuTe.cleanup();
+		DS_SaTe.cleanup();
+		DS_UrTe.cleanup();
+		DS_NeTe.cleanup();
 	}
 
 	void localCleanup() {
@@ -303,11 +389,23 @@ class SolarSystem3D : public BaseProject {
 		T_Ur.cleanup();
 		T_Ne.cleanup();
 
+		T_MeTe.cleanup();
+		T_VeTe.cleanup();
+		T_EaTe.cleanup();
+		T_MaTe.cleanup();
+		T_JuTe.cleanup();
+		T_SaTe.cleanup();
+		T_UrTe.cleanup();
+		T_NeTe.cleanup();
+
 		M_Planet.cleanup();
+		M_PlanetTe.cleanup();
 
 		DSL.cleanup();
+		DSLT.cleanup();
 
 		P.destroy();
+		PT.destroy();
 		txt.localCleanup();
 	}
 
@@ -342,8 +440,36 @@ class SolarSystem3D : public BaseProject {
 
 		DS_Ne.bind(commandBuffer, P, 0, currentImage);
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Planet.indices.size()), 1, 0, 0, 0);
+		PT.bind(commandBuffer);
+
+		M_PlanetTe.bind(commandBuffer);
+
+		DS_MeTe.bind(commandBuffer, PT, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_PlanetTe.indices.size()), 1, 0, 0, 0);
+
+		DS_VeTe.bind(commandBuffer, PT, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_PlanetTe.indices.size()), 1, 0, 0, 0);
+
+		DS_EaTe.bind(commandBuffer, PT, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_PlanetTe.indices.size()), 1, 0, 0, 0);
+
+		DS_MaTe.bind(commandBuffer, PT, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_PlanetTe.indices.size()), 1, 0, 0, 0);
+
+		DS_JuTe.bind(commandBuffer, PT, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_PlanetTe.indices.size()), 1, 0, 0, 0);
+
+		DS_SaTe.bind(commandBuffer, PT, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_PlanetTe.indices.size()), 1, 0, 0, 0);
+
+		DS_UrTe.bind(commandBuffer, PT, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_PlanetTe.indices.size()), 1, 0, 0, 0);
+
+		DS_NeTe.bind(commandBuffer, PT, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_PlanetTe.indices.size()), 1, 0, 0, 0);
 
 		txt.populateCommandBuffer(commandBuffer, currentImage);
+
 	}
 
 	void updateUniformBuffer(uint32_t currentImage) {
@@ -429,6 +555,29 @@ class SolarSystem3D : public BaseProject {
 								glm::rotate(glm::mat4(1), neptune.getTilt(), glm::vec3(0, 0, 1)) *
 								glm::scale(glm::mat4(1), neptune.getSize());
 
+		glm::mat4 WorldM_MeTe = glm::translate(glm::mat4(1), mercury.getNamePosition()) * WorldM *
+								glm::scale(glm::mat4(1), mercury.getNameSize());
+		
+		glm::mat4 WorldM_VeTe = glm::translate(glm::mat4(1), venus.getNamePosition()) * WorldM *
+								glm::scale(glm::mat4(1), glm::vec3(0.7f));
+
+		glm::mat4 WorldM_EaTe = glm::translate(glm::mat4(1), earth.getNamePosition()) * WorldM *
+								glm::scale(glm::mat4(1), earth.getNameSize());
+		
+		glm::mat4 WorldM_MaTe = glm::translate(glm::mat4(1), mars.getNamePosition()) * WorldM *
+								glm::scale(glm::mat4(1), mars.getNameSize());
+		
+		glm::mat4 WorldM_JuTe = glm::translate(glm::mat4(1), jupiter.getNamePosition()) * WorldM *
+								glm::scale(glm::mat4(1), jupiter.getNameSize());
+		
+		glm::mat4 WorldM_SaTe = glm::translate(glm::mat4(1), saturn.getNamePosition()) * WorldM *
+								glm::scale(glm::mat4(1), saturn.getNameSize());
+		
+		glm::mat4 WorldM_UrTe = glm::translate(glm::mat4(1), uranus.getNamePosition()) * WorldM *
+								glm::scale(glm::mat4(1), uranus.getNameSize());
+		
+		glm::mat4 WorldM_NeTe = glm::translate(glm::mat4(1), neptune.getNamePosition()) * WorldM *
+								glm::scale(glm::mat4(1), neptune.getNameSize());
 		// std::cout << "rotation = " + std::to_string(earth.getRotation()) << std::endl;
 
 		///////// VIEW MATRIX /////////
@@ -558,6 +707,46 @@ class SolarSystem3D : public BaseProject {
 		DS_Ne.map(currentImage, &ubo_Ne, sizeof(ubo_Ne), 0);
 		DS_Ne.map(currentImage, &gubo, sizeof(gubo), 1);
 
+		ubo_MeTe.mvpMat = ProjectionM * ViewM * WorldM_MeTe;
+		ubo_MeTe.mMat = glm::mat4(1);
+		ubo_MeTe.nMat = glm::inverse(glm::transpose(ubo_MeTe.mMat));
+		DS_MeTe.map(currentImage, &ubo_MeTe, sizeof(ubo_MeTe), 0);
+
+		ubo_VeTe.mvpMat = ProjectionM * ViewM * WorldM_VeTe;
+		ubo_VeTe.mMat = glm::mat4(1);
+		ubo_VeTe.nMat = glm::inverse(glm::transpose(ubo_VeTe.mMat));
+		DS_VeTe.map(currentImage, &ubo_VeTe, sizeof(ubo_VeTe), 0);
+
+		ubo_EaTe.mvpMat = ProjectionM * ViewM * WorldM_EaTe;
+		ubo_EaTe.mMat = glm::mat4(1);
+		ubo_EaTe.nMat = glm::inverse(glm::transpose(ubo_EaTe.mMat));
+		DS_EaTe.map(currentImage, &ubo_EaTe, sizeof(ubo_EaTe), 0);
+
+		ubo_MaTe.mvpMat = ProjectionM * ViewM * WorldM_MaTe;
+		ubo_MaTe.mMat = glm::mat4(1);
+		ubo_MaTe.nMat = glm::inverse(glm::transpose(ubo_MaTe.mMat));
+		DS_MaTe.map(currentImage, &ubo_MaTe, sizeof(ubo_MaTe), 0);
+
+		ubo_JuTe.mvpMat = ProjectionM * ViewM * WorldM_JuTe;
+		ubo_JuTe.mMat = glm::mat4(1);
+		ubo_JuTe.nMat = glm::inverse(glm::transpose(ubo_JuTe.mMat));
+		DS_JuTe.map(currentImage, &ubo_JuTe, sizeof(ubo_JuTe), 0);
+
+		ubo_SaTe.mvpMat = ProjectionM * ViewM * WorldM_SaTe;
+		ubo_SaTe.mMat = glm::mat4(1);
+		ubo_SaTe.nMat = glm::inverse(glm::transpose(ubo_SaTe.mMat));
+		DS_SaTe.map(currentImage, &ubo_SaTe, sizeof(ubo_SaTe), 0);
+
+		ubo_UrTe.mvpMat = ProjectionM * ViewM * WorldM_UrTe;
+		ubo_UrTe.mMat = glm::mat4(1);
+		ubo_UrTe.nMat = glm::inverse(glm::transpose(ubo_UrTe.mMat));
+		DS_UrTe.map(currentImage, &ubo_UrTe, sizeof(ubo_UrTe), 0);
+
+		ubo_NeTe.mvpMat = ProjectionM * ViewM * WorldM_NeTe;
+		ubo_NeTe.mMat = glm::mat4(1);
+		ubo_NeTe.nMat = glm::inverse(glm::transpose(ubo_NeTe.mMat));
+		DS_NeTe.map(currentImage, &ubo_NeTe, sizeof(ubo_NeTe), 0);
+
 		txt.updateUniformBuffer(currentImage);
 	}
 
@@ -685,6 +874,7 @@ class SolarSystem3D : public BaseProject {
 	}
 
 	void createPlanetMesh(std::vector<Vertex> &vDef, std::vector<uint32_t> &vIdx);
+	void createTextMesh(std::vector<VertexText>& vDef, std::vector<uint32_t>& vIdx);
 
 };
 
