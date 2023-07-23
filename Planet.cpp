@@ -170,3 +170,28 @@ glm::vec2 Planet::getRingRadii() {
 float Planet::getRingRotation() {
 	return this->ring_theta;
 }
+
+float Planet::getZoomDistance(){
+
+    float coeff = this->x_radius / this->a;
+    return -2.272727f * coeff + 0.97977273f;
+
+}
+
+glm::vec3 Planet::getNameSize(){
+
+    float size = std::max(std::min(1.75f * this->x_radius, 5.f), 0.7f);
+    return glm::vec3(size);
+
+}
+
+glm::vec3 Planet::getNamePosition(){
+
+    glm::vec3 distance = glm::vec3(
+        0,
+        this->getNameSize().y + this->y_radius,
+        0
+    );
+    return this->getPosition() + distance;
+
+}

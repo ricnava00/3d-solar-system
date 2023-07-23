@@ -47,6 +47,11 @@ struct Vertex {
 	glm::vec2 UV;
 };
 
+struct TexturedVertex {
+	glm::vec3 pos;
+	glm::vec2 UV;
+};
+
 struct RawVertex {
 	glm::vec3 pos;
 };
@@ -75,24 +80,24 @@ class SolarSystem3D : public BaseProject {
 	TextMaker txt;
 	Controller *controller;
 
-	DescriptorSetLayout DSL_Planet, DSL_Orbit, DSL_Skybox; // descriptor layout
-	VertexDescriptor VD_Planet, VD_Raw; // vertex format
-	Pipeline P, P_Ring, P_Sun, P_Orbit, P_Skybox; // pipeline
+	DescriptorSetLayout DSL_Planet, DSL_Orbit, DSL_Skybox, DSL_PlanetText; // descriptor layout
+	VertexDescriptor VD_Planet, VD_PlanetText, VD_Raw; // vertex format
+	Pipeline P, P_Ring, P_Sun, P_Orbit, P_Skybox, P_PlanetText; // pipeline
 
 	// models, textures and descriptors
 	Model<Vertex> M_Planet;
 	std::vector<Model<Vertex>> M_Rings;
 	Model<RawVertex> M_Orbit, M_Skybox;
+	Model<TexturedVertex> M_PlanetText;
 	DescriptorSet DS_Su, DS_Skybox;
-	std::vector<DescriptorSet> DS_Planets, DS_Rings, DS_Orbits;
+	std::vector<DescriptorSet> DS_Planets, DS_Rings, DS_Orbits, DS_PlanetTexts;
 	Texture T_Su, T_Skybox;
-	std::vector<Texture> T_Planets, T_Rings;
+	std::vector<Texture> T_Planets, T_Rings, T_PlanetTexts;
 
 	const float nearPlane = 0.01f;
 	const float farPlane = 1000.0f;
 	glm::mat4 WorldM = glm::translate(glm::mat4(1), glm::vec3(0.f, 0.f, -10.f));
 	glm::mat4 ViewPrj;
-
 	glm::vec3 CamPos=glm::vec3(0, 5, 9);
 	glm::mat3 CamDir=glm::mat3({1, 0, 0}, {0, 0.973864, -0.227133}, {0, 0.227133, 0.973864});
 
@@ -117,6 +122,7 @@ class SolarSystem3D : public BaseProject {
 	bool realScales = false;
 	bool realPeriodsRatio = false;
 	bool showOrbits = false;
+	bool showPlanetNames = false;
 
 	static void updatePlanetButton(bool isWatching, std::string planetName) {
 		app->_updatePlanetButton(isWatching, planetName);
@@ -142,7 +148,7 @@ class SolarSystem3D : public BaseProject {
 	void _updatePeriodsRatioAndScrollText(Button &button, float perc) {
 		rotRevFactor = pow(10,perc*4-2);
 		char* str;
-		asprintf(&str,"%gx",rotRevFactor);
+		asprintf(&str,"Rotation speed: %gx",rotRevFactor);
 		_replaceText(button, str);
 		_updatePlanetScales();
 	}
@@ -196,14 +202,15 @@ class SolarSystem3D : public BaseProject {
 		// Descriptor pool sizes
 		int numPlanets = planets.size() + 1;
 		int numOrbits = planets.size();
+		int numTexts = planets.size();
 		int numRings = 0;
 		for (Planet *p : planets) {
 			numRings += p->hasRing();
 		}
 		int numButtons = buttonInfo.size();
-		uniformBlocksInPool = 1 + 1 + 3 * numButtons + 2 * numPlanets + 2 * numRings + 2 * numOrbits; //constants are text and skybox
-		texturesInPool = 1 + 6 + 3 * numButtons + numPlanets + numRings + numOrbits;
-		setsInPool = 1 + 1 + 3 * numButtons + numPlanets + numRings + numOrbits;
+		uniformBlocksInPool = 1 + 1 + 3 * numButtons + 2 * numPlanets + 2 * numRings + 2 * numOrbits + numTexts; //constants are text and skybox
+		texturesInPool = 1 + 6 + 3 * numButtons + numPlanets + numRings + numOrbits + numTexts;
+		setsInPool = 1 + 1 + 3 * numButtons + numPlanets + numRings + numOrbits + numTexts;
 	}
 
 	void onWindowResize(int w, int h) {
@@ -233,6 +240,10 @@ class SolarSystem3D : public BaseProject {
 			app->_toggleWhenClicked(b, app->showOrbits);
 		}, "Toggle orbits", {-0.98, -0.96}, ALIGN_LEFT, {1.2, 0});
 		toggleOrbitsButton->setActive(showOrbits);
+		Button *toggleNamesButton = new Button([](Button &b) {
+			app->_toggleWhenClicked(b, app->showPlanetNames);
+		}, "Toggle names", {-0.98, -0.76}, ALIGN_LEFT, {1.2, 0});
+		toggleNamesButton->setActive(showPlanetNames);
 		toggleScalesButton = new Button([](Button &b) {
 			app->_toggleWhenClicked(b, app->realScales);
 			app->_updatePlanetScales();
@@ -244,6 +255,7 @@ class SolarSystem3D : public BaseProject {
 		}, "Real periods ratios", {0.98, -0.76}, ALIGN_RIGHT, {1.2, 0});
 		togglePeriodsButton->setActive(realPeriodsRatio);
 		planetButton = new Button([](Button&) {
+			app->controller->toggleAction();
 		}, "Earth", {0, 0.82}, ALIGN_CENTER, {1, 0});
 		planetButton->setActive(false);
 		Button *prevPlanetButton = new Button(std::bind(setZoomedPlanetIndexRelative, _1, -1), "<", {0, 0}, ALIGN_RIGHT, {0, 0}, planetButton);
@@ -260,6 +272,7 @@ class SolarSystem3D : public BaseProject {
 		scrollPeriodsKnob->setUIScale(UI_Scale);
 		scrollPeriodsKnob->setOffset(scrollPeriodsButton->getSideGeometry(0).offset + glm::vec2(0, (362.f / 800 / 2 - scrollPeriodsKnob->getInfo().height / 2) * UI_Scale));
 		buttons.push_back(*toggleOrbitsButton);
+		buttons.push_back(*toggleNamesButton);
 		buttons.push_back(*toggleScalesButton);
 		buttons.push_back(*togglePeriodsButton);
 		buttons.push_back(*planetButton);
@@ -277,11 +290,17 @@ class SolarSystem3D : public BaseProject {
 		}
 		DS_Rings.resize(numRings);
 		DS_Orbits.resize(planets.size());
+		DS_PlanetTexts.resize(planets.size());
 
 		DSL_Planet.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
 			{1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
 			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
+		});
+
+		DSL_PlanetText.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
 		});
 
 		DSL_Orbit.init(this, {
@@ -295,16 +314,22 @@ class SolarSystem3D : public BaseProject {
 		});
 
 		VD_Planet.init(this, {
-			{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX} },
-			{ {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos), sizeof(glm::vec3), POSITION},
-			{0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, norm), sizeof(glm::vec3), NORMAL},
-			{0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, UV), sizeof(glm::vec2), UV}
+			{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX} }, {
+				{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos), sizeof(glm::vec3), POSITION},
+				{0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, norm), sizeof(glm::vec3), NORMAL},
+				{0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, UV), sizeof(glm::vec2), UV}
+		});
+
+		VD_PlanetText.init(this, {
+			{0, sizeof(TexturedVertex), VK_VERTEX_INPUT_RATE_VERTEX} }, {
+				{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(TexturedVertex, pos), sizeof(glm::vec3), POSITION},
+				{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(TexturedVertex, UV), sizeof(glm::vec2), UV}
 		});
 
 		VD_Raw.init(this,
-			{{0, sizeof(RawVertex), VK_VERTEX_INPUT_RATE_VERTEX}},
-			{{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(RawVertex, pos), sizeof(glm::vec3), POSITION}}
-		);
+			{{0, sizeof(RawVertex), VK_VERTEX_INPUT_RATE_VERTEX}}, {
+				{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(RawVertex, pos), sizeof(glm::vec3), POSITION}
+		});
 
 		P.init(this, &VD_Planet, "shaders/PlanetVert.spv", "shaders/PlanetFrag.spv", { &DSL_Planet });
 		P_Sun.init(this, &VD_Planet, "shaders/PlanetVert.spv", "shaders/SunFrag.spv", { &DSL_Planet });
@@ -314,12 +339,16 @@ class SolarSystem3D : public BaseProject {
 		P_Orbit.setAdvancedFeatures(VK_COMPARE_OP_LESS, VK_POLYGON_MODE_LINE, VK_CULL_MODE_BACK_BIT, true, VK_PRIMITIVE_TOPOLOGY_LINE_STRIP);
 		P_Skybox.init(this, &VD_Raw, "shaders/SkyboxVert.spv", "shaders/SkyboxFrag.spv", { &DSL_Skybox });
 		P_Skybox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
+		P_PlanetText.init(this, &VD_PlanetText, "shaders/NameVert.spv", "shaders/NameFrag.spv", { &DSL_PlanetText });
+		P_PlanetText.setAdvancedFeatures(VK_COMPARE_OP_ALWAYS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
 		T_Su.init(this, "textures/sun.jpg");
 		Texture T;
 		for (Planet *p: planets) {
 			T.init(this, (std::string("") + "textures/planets/" + p->getName() + ".jpg").c_str());
 			T_Planets.push_back(T);
+			T.init(this, (std::string("") + "textures/texts/" + p->getName() + ".png").c_str());
+			T_PlanetTexts.push_back(T);
 			if(p->hasRing())
 			{
 				T.init(this, (std::string("") + "textures/rings/" + p->getName() + ".png").c_str());
@@ -328,7 +357,6 @@ class SolarSystem3D : public BaseProject {
 		}
 		const char *SkyboxTextures[] = {"textures/sky/px.png", "textures/sky/nx.png", "textures/sky/py.png", "textures/sky/ny.png", "textures/sky/pz.png", "textures/sky/nz.png"};
 		T_Skybox.initCubic(this, SkyboxTextures);
-
 
 		createPlanetMesh(M_Planet.vertices, M_Planet.indices);
 		M_Planet.initMesh(this, &VD_Planet);
@@ -353,6 +381,9 @@ class SolarSystem3D : public BaseProject {
 		createSkyboxMesh(M_Skybox.vertices, M_Skybox.indices);
 		M_Skybox.initMesh(this, &VD_Raw);
 
+		createTextMesh(M_PlanetText.vertices, M_PlanetText.indices);
+		M_PlanetText.initMesh(this, &VD_PlanetText);
+
 		initButtons();
 		txt.init(this, buttons, Ar);
 
@@ -365,6 +396,7 @@ class SolarSystem3D : public BaseProject {
 		P_Sun.create();
 		P_Orbit.create();
 		P_Skybox.create();
+		P_PlanetText.create();
 
 		DS_Su.init(this, &DSL_Planet, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
@@ -406,6 +438,15 @@ class SolarSystem3D : public BaseProject {
 			{1, TEXTURE, 0, &T_Skybox}
 		});
 
+		n=0;
+		for (DescriptorSet &DS : DS_PlanetTexts) {
+			DS.init(this, &DSL_Orbit, {
+				{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+				{1, TEXTURE, 0, &T_PlanetTexts.at(n)}
+			});
+			n++;
+		}
+
 		txt.pipelinesAndDescriptorSetsInit();
 	}
 
@@ -415,6 +456,7 @@ class SolarSystem3D : public BaseProject {
 		P_Sun.cleanup();
 		P_Orbit.cleanup();
 		P_Skybox.cleanup();
+		P_PlanetText.cleanup();
 
 		DS_Su.cleanup();
 		for (DescriptorSet &DS : DS_Planets) {
@@ -427,6 +469,9 @@ class SolarSystem3D : public BaseProject {
 			DS.cleanup();
 		}
 		DS_Skybox.cleanup();
+		for (DescriptorSet &DS : DS_PlanetTexts) {
+			DS.cleanup();
+		}
 
 		txt.pipelinesAndDescriptorSetsCleanup();
 	}
@@ -440,6 +485,9 @@ class SolarSystem3D : public BaseProject {
 			T.cleanup();
 		}
 		T_Skybox.cleanup();
+		for (Texture &T : T_PlanetTexts) {
+			T.cleanup();
+		}
 
 		M_Planet.cleanup();
 		for (auto &M : M_Rings) {
@@ -447,16 +495,19 @@ class SolarSystem3D : public BaseProject {
 		}
 		M_Orbit.cleanup();
 		M_Skybox.cleanup();
+		M_PlanetText.cleanup();
 
 		DSL_Planet.cleanup();
 		DSL_Orbit.cleanup();
 		DSL_Skybox.cleanup();
+		DSL_PlanetText.cleanup();
 
 		P.destroy();
 		P_Ring.destroy();
 		P_Sun.destroy();
 		P_Orbit.destroy();
 		P_Skybox.destroy();
+		P_PlanetText.destroy();
 
 		txt.localCleanup();
 	}
@@ -481,8 +532,8 @@ class SolarSystem3D : public BaseProject {
 		}
 
 		vkCmdSetLineWidth(commandBuffer, 3);
-		M_Orbit.bind(commandBuffer);
 		P_Orbit.bind(commandBuffer);
+		M_Orbit.bind(commandBuffer);
 		for (DescriptorSet &DS : DS_Orbits) {
 			DS.bind(commandBuffer, P_Orbit, 0, currentImage);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_Orbit.indices.size()), 1, 0, 0, 0);
@@ -498,7 +549,15 @@ class SolarSystem3D : public BaseProject {
 			r++;
 		}
 
+		P_PlanetText.bind(commandBuffer);
+		M_PlanetText.bind(commandBuffer);
+		for (DescriptorSet &DS : DS_PlanetTexts) {
+			DS.bind(commandBuffer, P_PlanetText, 0, currentImage);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(M_PlanetText.indices.size()), 1, 0, 0, 0);
+		}
+
 		txt.populateCommandBuffer(commandBuffer, currentImage);
+
 	}
 
 	void updateOrbitsUniformBuffer(uint32_t currentImage) {
@@ -508,28 +567,21 @@ class SolarSystem3D : public BaseProject {
 		int n=0;
 		for(Planet *p: planets)
 		{
-			if(showOrbits)
-			{
+			if (showOrbits) {
 				glm::vec2 orbitSize = p->getOrbitSize();
-				WorldM_P =	WorldM * glm::rotate(glm::mat4(1), p->getOrbitInclination(), glm::vec3(0, 0, 1)) *
-							glm::translate(glm::mat4(1), -p->getOrbitFocus()) *
-							glm::scale(glm::mat4(1), glm::vec3(orbitSize.x, 0, orbitSize.y));
+				WorldM_P = WorldM * glm::rotate(glm::mat4(1), p->getOrbitInclination(), glm::vec3(0, 0, 1)) * glm::translate(glm::mat4(1), -p->getOrbitFocus()) * glm::scale(glm::mat4(1), glm::vec3(orbitSize.x, 0, orbitSize.y));
 
 				ubo.mMat = WorldM_P;
 				ubo.mvpMat = ViewPrj * ubo.mMat;
 				ubo.nMat = glm::inverse(glm::transpose(ubo.mMat));
-			}
-			else
-			{
+			} else {
 				ubo.mMat = glm::mat4(0);
 				ubo.mvpMat = glm::mat4(0);
 				ubo.nMat = glm::mat4(0);
 			}
-
 			DS_Orbits.at(n).map(currentImage, &ubo, sizeof(ubo), 0);
 			n++;
 		}
-
 		txt.updateUniformBuffer(currentImage);
 	}
 
@@ -590,19 +642,18 @@ class SolarSystem3D : public BaseProject {
 						glm::rotate(glm::mat4(1), p->getTilt(), glm::vec3(0, 0, 1)) *
 						glm::rotate(glm::mat4(1), p->getRotation(), glm::vec3(0, 1, 0)) *
 						glm::scale(glm::mat4(1), p->getSize());
-
 			ubo.mMat = WorldM_P;
 			ubo.mvpMat = ViewPrj * ubo.mMat;
 			ubo.nMat = glm::inverse(glm::transpose(ubo.mMat));
 			DS_Planets.at(n).map(currentImage, &ubo, sizeof(ubo), 0);
 			DS_Planets.at(n).map(currentImage, &gubo, sizeof(gubo), 1);
+
 			if(p->hasRing())
 			{
 				WorldM_P =	WorldM * glm::translate(glm::mat4(1), p->getPosition()) *
 							glm::rotate(glm::mat4(1), p->getTilt(), glm::vec3(0, 0, 1)) *
 							glm::rotate(glm::mat4(1), p->getRingRotation(), glm::vec3(0, 1, 0)) *
 							glm::scale(glm::mat4(1), glm::vec3(p->getRingRadii().y));
-
 				ubo.mMat = WorldM_P;
 				ubo.mvpMat = ViewPrj * ubo.mMat;
 				ubo.nMat = glm::inverse(glm::transpose(ubo.mMat));
@@ -610,6 +661,18 @@ class SolarSystem3D : public BaseProject {
 				DS_Rings.at(rn).map(currentImage, &gubo, sizeof(gubo), 1);
 				rn++;
 			}
+
+			if (showPlanetNames) {
+				WorldM_P = WorldM * glm::translate(glm::mat4(1), p->getNamePosition()) * glm::scale(glm::mat4(1), p->getNameSize());
+				ubo.mMat = WorldM_P;
+				ubo.mvpMat = ViewPrj * ubo.mMat;
+				ubo.nMat = glm::inverse(glm::transpose(ubo.mMat));
+			} else {
+				ubo.mMat = glm::mat4(0);
+				ubo.mvpMat = glm::mat4(0);
+				ubo.nMat = glm::mat4(0);
+			}
+			DS_PlanetTexts.at(n).map(currentImage, &ubo, sizeof(ubo), 0);
 			n++;
 		}
 
@@ -764,6 +827,7 @@ class SolarSystem3D : public BaseProject {
 	void createRingMesh(float innerRadius, float textureRatio, std::vector<Vertex> &vDef, std::vector<uint32_t> &vIdx);
 	void createOrbitMesh(std::vector<RawVertex> &vDef, std::vector<uint32_t> &vIdx);
 	void createSkyboxMesh(std::vector<RawVertex> &vDef, std::vector<uint32_t> &vIdx);
+	void createTextMesh(std::vector<TexturedVertex>& vDef, std::vector<uint32_t>& vIdx);
 
 };
 

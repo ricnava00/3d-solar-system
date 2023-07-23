@@ -70,4 +70,9 @@ class Planet{
         glm::vec2 getRingRadii();
         float getRingRotation();
 
+        // controller features
+        float getZoomDistance();
+        glm::vec3 getNameSize();
+        glm::vec3 getNamePosition();
+
 };

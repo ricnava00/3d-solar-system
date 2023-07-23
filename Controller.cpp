@@ -87,6 +87,12 @@ ControllerActions Controller::listenEvent() {
 	return this->currAction;
 }
 
+void Controller::toggleAction()
+{
+	currAction = ControllerActions(!currAction);
+	setZoomedPlanetIndex(zoomedPlanet);
+}
+
 bool Controller::processMousePressed(float mouseX, float mouseY) {
 	bool clickedAny = false;
 	for (Button &b : buttons) {

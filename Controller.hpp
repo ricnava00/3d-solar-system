@@ -42,6 +42,7 @@ class Controller{
         
         ControllerActions listenEvent();
         Planet *getZoomedPlanet();
+        void toggleAction();
         void setZoomedPlanetIndex(int index);
         void setZoomedPlanetIndexRelative(int offset);
         bool processMousePressed(float mouseX, float mouseY);
