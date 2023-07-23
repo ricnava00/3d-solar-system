@@ -35,6 +35,7 @@ struct InstanceData {
 	glm::vec2 offset;
 	glm::vec2 scale;
 	float visible;
+	float enabled;
 	float hover;
 	float active;
 };
@@ -144,8 +145,9 @@ struct TextMaker {
 			{1, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(InstanceData, offset), sizeof(glm::vec2), OTHER},
 			{1, 3, VK_FORMAT_R32G32_SFLOAT, offsetof(InstanceData, scale), sizeof(glm::vec2), OTHER},
 			{1, 4, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, visible), sizeof(float), OTHER},
-			{1, 5, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, hover), sizeof(float), OTHER},
-			{1, 6, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, active), sizeof(float), OTHER}
+			{1, 5, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, enabled), sizeof(float), OTHER},
+			{1, 6, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, hover), sizeof(float), OTHER},
+			{1, 7, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, active), sizeof(float), OTHER}
 		});
 		DSL.init(BP, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
@@ -493,7 +495,7 @@ struct TextMaker {
 		Geometry geometry;
 		for (Button &b : Buttons) {
 			geometry = b.getTextGeometry();
-			instanceData.push_back( { geometry.offset, geometry.scale, b.isVisible() ? 1.0f : 0.0f, b.isHover() ? 1.0f : 0.0f, b.isActive() ? 1.0f : 0.0f });
+			instanceData.push_back( { geometry.offset, geometry.scale, b.isVisible() ? 1.0f : 0.0f, b.isEnabled() ? 1.0f : 0.0f, b.isHover() ? 1.0f : 0.0f, b.isActive() ? 1.0f : 0.0f });
 		}
 		return instanceData;
 	}
@@ -504,7 +506,7 @@ struct TextMaker {
 		for (Button &b : Buttons) {
 			if (b.getType() == type) {
 				geometry = b.getSideGeometry(side);
-				instanceData.push_back( {geometry.offset, geometry.scale, b.isVisible() ? 1.0f : 0.0f, b.isHover() ? 1.0f : 0.0f, b.isActive() ? 1.0f : 0.0f});
+				instanceData.push_back( {geometry.offset, geometry.scale, b.isVisible() ? 1.0f : 0.0f, b.isEnabled() ? 1.0f : 0.0f, b.isHover() ? 1.0f : 0.0f, b.isActive() ? 1.0f : 0.0f});
 			}
 		}
 		return instanceData;

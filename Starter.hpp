@@ -239,6 +239,9 @@ struct Texture {
 	VkSampler textureSampler;
 	int imgs;
 	static const int maxImgs = 6;
+	int texWidth;
+	int texHeight;
+	int texChannels;
 	
 	void createTextureImage(const char *const files[], VkFormat Fmt);
 	void createTextureImageView(VkFormat Fmt);
@@ -2374,7 +2377,6 @@ void Model<Vert>::bind(VkCommandBuffer commandBuffer) {
 
 
 void Texture::createTextureImage(const char *const files[], VkFormat Fmt = VK_FORMAT_R8G8B8A8_SRGB) {
-	int texWidth, texHeight, texChannels;
 	int curWidth = -1, curHeight = -1, curChannels = -1;
 	stbi_uc* pixels[maxImgs];
 	

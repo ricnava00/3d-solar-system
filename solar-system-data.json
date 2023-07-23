@@ -133,6 +133,11 @@
             "sideral_orbital_period": 10759.22,
             "synodic_rotation_period": 0.4393042
         },
+        "ring": {
+            "inner_radius": 66900,
+            "outer_radius": 140180,
+            "rotation_period": 0.35
+        },
         "light": {
             "geometric_albedo": 0.499
         }

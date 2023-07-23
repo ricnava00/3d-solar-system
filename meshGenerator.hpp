@@ -99,3 +99,51 @@ void SolarSystem3D::createPlanetMesh(std::vector<Vertex>& vDef, std::vector<uint
     connectPole(start_idx + 2*n_sectors, start_idx + n_sectors, n_sectors,1);
 
 }
+
+/** Creates a ring mesh, with the specified inner radius and outer radius 1
+ * The texture represents a horizontal section of the ring, to be repeated on the y axis
+ * */
+void SolarSystem3D::createRingMesh(float innerRadius, float textureRatio, std::vector<Vertex> &vDef, std::vector<uint32_t> &vIdx) {
+	int len = 1000;
+	float angle, v;
+	float finalV = 2.f * M_PI * textureRatio;
+	textureRatio *= std::roundf(finalV) / finalV; //Fix texture repetition: if last V is 9.3, make it 9
+	for (int n = 0; n <= len; n++) {
+		angle = (float) n / len * 2 * M_PI;
+		v = angle * textureRatio;
+		vDef.push_back({{cos(angle), 0, sin(angle)}, {0, 1, 0}, {1, v}});
+		vDef.push_back({{innerRadius * cos(angle), 0, innerRadius * sin(angle)}, {0, 1, 0}, {0, v}});
+		vIdx.push_back(n * 2);
+		vIdx.push_back(n * 2 + 1);
+		vIdx.push_back((n * 2 + 3) % ((len+1) * 2));
+		vIdx.push_back((n * 2 + 3) % ((len+1) * 2));
+		vIdx.push_back((n * 2 + 2) % ((len+1) * 2));
+		vIdx.push_back(n * 2);
+	}
+}
+
+/** Creates a circumference mesh with radius 1 */
+void SolarSystem3D::createOrbitMesh(std::vector<RawVertex> &vDef, std::vector<uint32_t> &vIdx) {
+	int len=200;
+	for(int n=0;n<len;n++)
+	{
+		vDef.push_back({{cos((float)n/len*2*M_PI),0,sin((float)n/len*2*M_PI)}});
+		vIdx.push_back(n);
+	}
+	vIdx.push_back(0);
+}
+
+/** Creates a cube mesh with side 1 */
+void SolarSystem3D::createSkyboxMesh(std::vector<RawVertex> &vDef, std::vector<uint32_t> &vIdx) {
+	vDef = {
+			{{1, 1, 1}},
+			{{-1, 1, 1}},
+			{{1, -1, 1}},
+			{{-1, -1, 1}},
+			{{1, 1, -1}},
+			{{-1, 1, -1}},
+			{{-1, -1, -1}},
+			{{1, -1, -1}},
+	};
+	vIdx = {3, 2, 6, 7, 4, 2, 0, 3, 1, 6, 5, 4, 1, 0};
+}

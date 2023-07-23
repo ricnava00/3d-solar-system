@@ -1,9 +1,10 @@
 #include "ScrollKnob.hpp"
 
-ScrollKnob::ScrollKnob(std::function<void(float)> updateCallback, int steps, int initialStep, float widthFactor, glm::vec2 offset, float alignRight, glm::vec2 minSize, Button *adjacentButton) :
+ScrollKnob::ScrollKnob(std::function<void(float)> updateCallback, int steps, int initialStep, float widthFactor, glm::vec2 offset, Alignment alignment, glm::vec2 minSize, Button *adjacentButton) :
 		Button([](Button&) {
-		}, "", offset, alignRight, minSize, adjacentButton) {
+		}, "", offset, alignment, minSize, adjacentButton) {
 	type = SCROLL_KNOB;
+	this->offset.x += minSize.x / Ar * alignment / 2;
 	this->updateCallback = updateCallback;
 	this->steps = steps;
 	this->currentStep = initialStep;
@@ -12,9 +13,14 @@ ScrollKnob::ScrollKnob(std::function<void(float)> updateCallback, int steps, int
 	halfPressed = true; //To run callback after initialization
 }
 
+void ScrollKnob::setOffset(const glm::vec2 offset) {
+	this->offset = offset;
+	this->offset.x += minSize.x / Ar * alignment / 2;
+}
+
 bool ScrollKnob::processMousePressed(float mouseX, float mouseY) {
 	if (mouseIsOver(mouseX, mouseY)) {
-		halfPressed = true;
+		halfPressed = enabled;
 		return true;
 	}
 	return false;
@@ -32,7 +38,7 @@ void ScrollKnob::processMouseHeld(float mouseX, float mouseY) {
 }
 
 void ScrollKnob::processMouseNotPressed(float mouseX, float mouseY) {
-	setHover(mouseIsOver(mouseX, mouseY));
+	setHover(enabled && mouseIsOver(mouseX, mouseY));
 	if (halfPressed) {
 		updateCallback((float) currentStep / steps);
 		needUpdate = true;
@@ -42,6 +48,14 @@ void ScrollKnob::processMouseNotPressed(float mouseX, float mouseY) {
 
 float ScrollKnob::getScaleCenter() {
 	return 1.f;
+}
+
+void ScrollKnob::align(bool reset) {
+	if (reset || !aligned) {
+		alignedOffset = offset;
+		alignedOffset.x -= minSize.x / Ar * alignment / 2;
+		aligned = true;
+	}
 }
 
 Geometry ScrollKnob::getSideGeometry(int side) {

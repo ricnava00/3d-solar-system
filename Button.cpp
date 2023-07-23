@@ -1,11 +1,17 @@
 #include "Button.hpp"
+#include <sstream>
 
-Button::Button(std::function<void(Button&)> callback, std::string text, glm::vec2 offset, float alignRight, glm::vec2 minSize, Button *adjacentButton) {
+Button::Button(std::function<void(Button&)> callback, std::string text, glm::vec2 offset, Alignment alignment, glm::vec2 minSize, Button *adjacentButton) {
+	if (adjacentButton != nullptr && alignment == ALIGN_CENTER) {
+		std::stringstream buffer;
+		buffer << "Button " << this << " is aligned relatively and ALIGN_CENTER, only ALIGN_LEFT and ALIGN_RIGHT are valid for relatively aligned buttons";
+		throw std::runtime_error(buffer.str());
+	}
 	this->callback = callback;
 	this->text = text;
 	this->offset = offset;
 	this->alignedOffset = offset;
-	this->alignRight = alignRight;
+	this->alignment = alignment;
 	this->adjacentButton = adjacentButton;
 	info = buttonInfo.at(type);
 	this->minSize = minSize - info.marginHorizontal * 2;
@@ -14,13 +20,11 @@ Button::Button(std::function<void(Button&)> callback, std::string text, glm::vec
 void Button::align(bool reset) {
 	if (reset || !aligned) {
 		alignedOffset = offset;
-		if (alignRight) {
-			alignedOffset.x -= getFullWidth();
-		}
+		alignedOffset.x -= getFullWidth() * alignment / 2;
 		if (adjacentButton != nullptr) {
 			adjacentButton->align(); //If target button has yet to be aligned, do it first
 			alignedOffset += adjacentButton->alignedOffset;
-			if (!alignRight) {
+			if (alignment == ALIGN_LEFT) {
 				alignedOffset.x += adjacentButton->getFullWidth();
 			}
 		}
@@ -35,18 +39,18 @@ void Button::updateBoundingBox() {
 
 bool Button::processMousePressed(float mouseX, float mouseY) {
 	if (mouseIsOver(mouseX, mouseY)) {
-		halfPressed = true;
+		halfPressed = enabled; //don't activate if disabled
 		return true;
 	}
 	return false;
 }
 
 void Button::processMouseNotPressed(float mouseX, float mouseY) {
-	setHover(mouseIsOver(mouseX, mouseY));
+	setHover(enabled && mouseIsOver(mouseX, mouseY));
 	if (hover && halfPressed) {
 		callback(*this);
-		halfPressed = false;
 	}
+	halfPressed = false;
 }
 
 Geometry Button::getTextGeometry() {

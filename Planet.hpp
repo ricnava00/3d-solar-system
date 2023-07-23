@@ -30,17 +30,29 @@ class Planet{
         float rot_speed;
         float rev_speed;
 
-        // CONTROLS
-        bool rev_active; // true if the revolution of the planet is active, false otherwise
+        // RING
+        bool ring;
+        float ring_theta;
+        float ring_inner_radius;
+        float ring_outer_radius;
+        float ring_rot_speed;
 
-        void setShape(float earth_eqradius, json planet_data, json earth_data);
-        void setOrbit(float earth_majaxis, json planet_data, json earth_data);
-        void setSpeeds(float earth_rottime, float earth_revtime, json planet_data, json earth_data);
-    
+        // SCALES
+        bool rev_active; // true if the revolution of the planet is active, false otherwise //TODO remove
+        inline static float radius_scale;
+        inline static float orbit_scale;
+        inline static float rotation_scale;
+        inline static float revolution_scale;
+
+        void setShape(json planet_data, json earth_data);
+        void setOrbit(json planet_data, json earth_data);
+        void setSpeeds(json planet_data, json earth_data);
+        void setRing(json ring_data, json earth_shape_data, json earth_times_data);
     public:
 
-        Planet(float earth_eqradius, float earth_majaxis, float earth_rottime, float earth_revtime, std::string planet_name);
+        Planet(std::string planet_name, json &planet_data, json &earth_data);
 
+        static void setScales(float radius_scale, float orbit_scale, float rotation_scale, float revolution_scale);
         void updatePosition(float deltaT);
         void updateRotation(float deltaT);
         void enableRevolution();
@@ -51,5 +63,11 @@ class Planet{
         glm::vec3 getPosition();
         float getTilt();
         float getRotation();
+        glm::vec2 getOrbitSize();
+        float getOrbitInclination();
+        glm::vec3 getOrbitFocus();
+        bool hasRing();
+        glm::vec2 getRingRadii();
+        float getRingRotation();
 
 };

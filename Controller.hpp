@@ -12,22 +12,28 @@ enum ControllerActions {
     ZoomPlanet
 };
 
+enum RenderType {
+	RENDER_NORMAL,
+	RENDER_LOD
+};
+
 class Controller{
 
     private:
 		GLFWwindow *window;
 		int windowWidth, windowHeight;
 		std::function<int(float,float)> tryClickPlanet;
+		std::function<void(bool, std::string)> updateWatchingPlanetState;
         std::vector<Planet *> planets;
         std::vector<std::reference_wrapper<Button>> buttons;
         int lastKey = 0;
-
+        RenderType renderType;
         ControllerActions currAction;
         int zoomedPlanet; // identifier of the planet currently zoomed
 
     public:
 
-        Controller(GLFWwindow *window, std::vector<Planet *> planets, std::vector<std::reference_wrapper<Button>> buttons, std::function<int(float,float)> clickPlanet, int windowWidth, int windowHeight);
+        Controller(GLFWwindow *window, std::vector<Planet*> planets, std::vector<std::reference_wrapper<Button>> buttons, int windowWidth, int windowHeight, std::function<int(float, float)> tryClickPlanet, std::function<void(bool, std::string)> updateWatchingPlanetState);
 
 		void setWindowSize(int windowWidth, int windowHeight) {
 			this->windowWidth = windowWidth;
@@ -37,7 +43,9 @@ class Controller{
         ControllerActions listenEvent();
         Planet *getZoomedPlanet();
         void setZoomedPlanetIndex(int index);
+        void setZoomedPlanetIndexRelative(int offset);
         bool processMousePressed(float mouseX, float mouseY);
         void processMouseHeld(float mouseX, float mouseY);
         void processMouseNotPressed(float mouseX, float mouseY);
+        RenderType getRenderType();
 };

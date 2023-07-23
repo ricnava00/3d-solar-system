@@ -1,18 +1,29 @@
 #include "Controller.hpp"
 
-Controller::Controller(GLFWwindow *window, std::vector<Planet*> planets, std::vector<std::reference_wrapper<Button>> buttons, std::function<int(float,float)> tryClickPlanet, int windowWidth, int windowHeight) {
+Controller::Controller(GLFWwindow *window, std::vector<Planet*> planets, std::vector<std::reference_wrapper<Button>> buttons, int windowWidth, int windowHeight, std::function<int(float, float)> tryClickPlanet, std::function<void(bool, std::string)> updateWatchingPlanetState) {
 	this->window = window;
 	this->tryClickPlanet = tryClickPlanet;
+	this->updateWatchingPlanetState = updateWatchingPlanetState;
     this->planets = planets;
     this->buttons = buttons;
     setWindowSize(windowWidth, windowHeight);
+    this->renderType = RENDER_NORMAL;
     this->currAction = NoAction;
-    this->zoomedPlanet = 0; // intialize to random value
+    this->zoomedPlanet = 2; // intialize to random value
 }
 
 void Controller::setZoomedPlanetIndex(int index){
 
     this->zoomedPlanet = index;
+	std::string name=getZoomedPlanet()->getName();
+	name[0] = std::toupper(name[0]);
+	updateWatchingPlanetState(currAction == ZoomPlanet, name);
+
+}
+
+void Controller::setZoomedPlanetIndexRelative(int offset){
+
+	setZoomedPlanetIndex((this->zoomedPlanet + offset + planets.size()) % planets.size());
 
 }
 
@@ -27,6 +38,8 @@ ControllerActions Controller::listenEvent() {
 			bool pressedAnyButton = processMousePressed(xpos / windowWidth * 2 - 1, ypos / windowHeight * 2 - 1);
 			if (!pressedAnyButton) {
 				halfZoomedPlanet = tryClickPlanet(xpos/windowWidth*2-1,ypos/windowHeight*2-1);
+			} else {
+				//TODO disable panning
 			}
 		} else {
 			processMouseHeld(xpos / windowWidth * 2 - 1, ypos / windowHeight * 2 - 1);
@@ -39,8 +52,8 @@ ControllerActions Controller::listenEvent() {
 			if (found == halfZoomedPlanet) {
 				if (found != -1) {
 					std::cout << "Clicked planet " << found << std::endl;
-					zoomedPlanet = found;
 					currAction = ZoomPlanet;
+					setZoomedPlanetIndex(found);
 				}
 			}
 			halfZoomedPlanet = -2;
@@ -50,9 +63,24 @@ ControllerActions Controller::listenEvent() {
 		if (lastKey == -1) {
 			lastKey = GLFW_KEY_SPACE;
 			currAction = ControllerActions(!currAction);
+			setZoomedPlanetIndex(zoomedPlanet);
 		}
 	} else {
 		if (lastKey == GLFW_KEY_SPACE) {
+			lastKey = -1;
+		}
+	}
+	if (glfwGetKey(this->window, GLFW_KEY_L) == GLFW_PRESS) {
+		if (lastKey == -1) {
+			lastKey = GLFW_KEY_L;
+			if (renderType == RENDER_LOD) {
+				renderType = RENDER_NORMAL;
+			} else {
+				renderType = RENDER_LOD;
+			}
+		}
+	} else {
+		if (lastKey == GLFW_KEY_L) {
 			lastKey = -1;
 		}
 	}
@@ -83,4 +111,8 @@ Planet *Controller::getZoomedPlanet(){
 
 	return this->planets[this->zoomedPlanet];
 
+}
+
+RenderType Controller::getRenderType() {
+	return this->renderType;
 }

@@ -12,6 +12,12 @@ enum ButtonType {
 	SCROLL_KNOB
 };
 
+enum Alignment {
+	ALIGN_LEFT,
+	ALIGN_CENTER,
+	ALIGN_RIGHT
+};
+
 struct ButtonInfo {
 	std::string textureName;
 	float widthLeft;
@@ -72,12 +78,13 @@ protected:
 	glm::vec2 offset;
 	glm::vec2 alignedOffset;
 	Button *adjacentButton = nullptr;
-	bool alignRight;
+	Alignment alignment;
 	glm::vec2 minSize = glm::vec2(0);
 	glm::vec2 textSize;
 	bool visible = true;
 	bool hover = false;
 	bool active = true;
+	bool enabled = true;
 	float UIScale = 1.f;
 	BoundingBox boundingBox;
 	float Ar = 1.f;
@@ -87,7 +94,7 @@ protected:
 	ButtonInfo info;
 
 public:
-	Button(std::function<void(Button&)> callback, std::string text, glm::vec2 offset, float alignRight = false, glm::vec2 minSize = glm::vec2(0), Button *adjacentButton = nullptr);
+	Button(std::function<void(Button&)> callback, std::string text, glm::vec2 offset, Alignment alignment = ALIGN_LEFT, glm::vec2 minSize = glm::vec2(0), Button *adjacentButton = nullptr);
 
 	virtual float getScaleCenter() {
 		return ceil(std::max(0.0F, minSize.x + 2 * info.marginHorizontal - info.widthLeft - info.widthRight) / info.widthCenter);
@@ -105,28 +112,16 @@ public:
 		return type;
 	}
 
-	const glm::vec2 getOffset() const {
-		return offset;
-	}
-
-	void setOffset(const glm::vec2 offset) {
+	virtual void setOffset(const glm::vec2 offset) {
 		this->offset = offset;
 	}
 
-	const glm::vec2 getAlignedOffset() const {
-		return alignedOffset;
+	bool getAlignment() const {
+		return alignment;
 	}
 
-	void setAlignedOffset(const glm::vec2 alignedOffset) {
-		this->alignedOffset = alignedOffset;
-	}
-
-	bool isAlignRight() const {
-		return alignRight;
-	}
-
-	void setAlignRight(bool alignRight) {
-		this->alignRight = alignRight;
+	void setAlignment(Alignment alignment) {
+		this->alignment = alignment;
 	}
 
 	Button* getAdjacentButton() const {
@@ -164,6 +159,18 @@ public:
 
 	const ButtonInfo& getInfo() const {
 		return info;
+	}
+
+	bool isEnabled() const {
+		return enabled;
+	}
+
+	void setEnabled(bool enabled) {
+		halfPressed &= enabled;
+		if (this->enabled != enabled) {
+			this->enabled = enabled;
+			needUpdate = true;
+		}
 	}
 
 	bool isActive() const {
@@ -222,12 +229,10 @@ public:
 		return u;
 	}
 
-	void align(bool reset = false);
+	virtual void align(bool reset = false);
 	void updateBoundingBox();
 	virtual bool processMousePressed(float mouseX, float mouseY);
-	virtual void processMouseHeld(float mouseX, float mouseY) {
-	}
-	;
+	virtual void processMouseHeld(float mouseX, float mouseY) {}
 	virtual void processMouseNotPressed(float mouseX, float mouseY);
 	virtual Geometry getTextGeometry();
 	virtual Geometry getSideGeometry(int side);
