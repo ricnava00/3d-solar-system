@@ -38,7 +38,7 @@ class Planet{
         float ring_rot_speed;
 
         // SCALES
-        bool rev_active; // true if the revolution of the planet is active, false otherwise //TODO remove
+        bool rev_active; // true if the revolution of the planet is active, false otherwise
         inline static float radius_scale;
         inline static float orbit_scale;
         inline static float rotation_scale;

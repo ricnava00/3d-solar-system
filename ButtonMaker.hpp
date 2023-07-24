@@ -436,17 +436,6 @@ struct TextMaker {
 
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage, int curText = 0) {
 		VkDeviceSize offsets[1] = { 0 };
-		//TODO remove when sure everything works
-		if(std::min({MButtons.size(),instanceBuffers.size(),instanceBufferMemories.size(),DSButtons.size(),TButtons.size(),buttonInfo.size()*3})!=std::max({MButtons.size(),instanceBuffers.size(),instanceBufferMemories.size(),DSButtons.size(),TButtons.size(),buttonInfo.size()*3}))
-		{
-			std::vector<size_t> f={MButtons.size(),instanceBuffers.size(),instanceBufferMemories.size(),DSButtons.size(),TButtons.size(),buttonInfo.size()*3};
-			for(size_t fl: f)
-			{
-				std::cout << fl << " ";
-			}
-			std::cout << std::endl;
-			exit(1);
-		}
 		PButtons.bind(commandBuffer);
 		for (int n = 0; n < buttonInfo.size() * 3; n++) {
 			if (instanceBufferMemories[n] == nullptr) { //No buttons of this type

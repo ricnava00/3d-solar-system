@@ -49,7 +49,7 @@ void SolarSystem3D::createPlanetMesh(std::vector<Vertex>& vDef, std::vector<uint
     ////////////// ADDS VERTICES //////////////
     /*---------------------------------------*/
 
-    int parallels = 599, meridians = 60; // the number of parallels must be ODD
+    int parallels = 499, meridians = 30; // the number of parallels must be ODD
 
     float x, y, z, r; // sphere equation: x^2 + y^2 + z^2 = 1
 

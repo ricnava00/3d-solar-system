@@ -1,20 +1,3 @@
-/*
- * TODO
- *
- * Earth night texture + restore rotation code
- * Earth reflection texture
- * Transparent buttons
- * Ellipsoids https://stackoverflow.com/questions/52130939/ray-vs-ellipsoid-intersection
- * Moon
- *
- * Some custom planet handling
- * Sun becomes a planet
- * Collision detection (with tryclick and distance, push away from center)
- *
- * Animated skybox
- * Better json handling
- * Loading screen + hires textures
- */
 #include "Starter.hpp"
 #include "Planet.hpp"
 #include "Button.hpp"
@@ -24,6 +7,7 @@
 #include "Controller.hpp"
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtx/vector_angle.hpp>
+#include <sys/stat.h>
 
 using namespace std::placeholders;
 
@@ -91,7 +75,7 @@ class SolarSystem3D : public BaseProject {
 	DescriptorSet DS_Su, DS_Skybox;
 	std::vector<DescriptorSet> DS_Planets, DS_Rings, DS_Orbits, DS_PlanetTexts;
 	Texture T_Su, T_Skybox;
-	std::vector<Texture> T_Planets, T_Rings, T_PlanetTexts;
+	std::vector<Texture*> T_Planets, T_Rings, T_PlanetTexts;
 
 	const float nearPlane = 0.01f;
 	const float farPlane = 1000.0f;
@@ -147,7 +131,7 @@ class SolarSystem3D : public BaseProject {
 	void _updatePeriodsRatioAndScrollText(Button &button, float perc) {
 		rotRevFactor = pow(10,perc*4-2);
 		char* str;
-		asprintf(&str,"Rotation speed: %gx",rotRevFactor);
+		int ignored = asprintf(&str,"Periods speed: %gx",rotRevFactor);
 		_replaceText(button, str);
 		_updatePlanetScales();
 	}
@@ -208,7 +192,7 @@ class SolarSystem3D : public BaseProject {
 		}
 		int numButtons = buttonInfo.size();
 		uniformBlocksInPool = 1 + 1 + 3 * numButtons + 2 * numPlanets + 2 * numRings + 2 * numOrbits + numTexts; //constants are text and skybox
-		texturesInPool = 1 + 6 + 3 * numButtons + numPlanets + numRings + numOrbits + numTexts;
+		texturesInPool = 1 + 6 + 3 * numButtons + 2 * numPlanets + numRings + numOrbits + numTexts;
 		setsInPool = 1 + 1 + 3 * numButtons + numPlanets + numRings + numOrbits + numTexts;
 	}
 
@@ -294,7 +278,8 @@ class SolarSystem3D : public BaseProject {
 		DSL_Planet.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
 			{1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
-			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT},
+			{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
 		});
 
 		DSL_PlanetText.init(this, {
@@ -342,15 +327,26 @@ class SolarSystem3D : public BaseProject {
 		P_PlanetText.setAdvancedFeatures(VK_COMPARE_OP_ALWAYS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, true, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
 		T_Su.init(this, "textures/sun.jpg");
-		Texture T;
-		for (Planet *p: planets) {
-			T.init(this, (std::string("") + "textures/planets/" + p->getName() + ".jpg").c_str());
+		Texture *T;
+		struct stat buffer;
+		for (Planet *p : planets) {
+			T = new Texture;
+			T->init(this, (std::string("") + "textures/planets/" + p->getName() + ".jpg").c_str());
 			T_Planets.push_back(T);
-			T.init(this, (std::string("") + "textures/texts/" + p->getName() + ".png").c_str());
+			std::string nightTexture = std::string("") + "textures/planets/" + p->getName() + "-night.jpg";
+			if (stat(nightTexture.c_str(), &buffer) == 0) {
+				T = new Texture;
+				T->init(this, nightTexture.c_str());
+			} else {
+				T = nullptr;
+			}
+			T_Planets.push_back(T);
+			T = new Texture;
+			T->init(this, (std::string("") + "textures/texts/" + p->getName() + ".png").c_str());
 			T_PlanetTexts.push_back(T);
-			if(p->hasRing())
-			{
-				T.init(this, (std::string("") + "textures/rings/" + p->getName() + ".png").c_str());
+			if (p->hasRing()) {
+				T = new Texture;
+				T->init(this, (std::string("") + "textures/rings/" + p->getName() + ".png").c_str());
 				T_Rings.push_back(T);
 			}
 		}
@@ -366,8 +362,8 @@ class SolarSystem3D : public BaseProject {
 				Model<Vertex> M;
 				glm::vec2 radii = p->getRingRadii();
 				float innerRadiusScaled = radii.x / radii.y;
-				Texture &T = T_Rings.at(n);
-				float textureRatio = (float) T.texWidth / T.texHeight;
+				Texture *T = T_Rings.at(n);
+				float textureRatio = (float) T->texWidth / T->texHeight;
 				createRingMesh(innerRadiusScaled, textureRatio, M.vertices, M.indices);
 				M.initMesh(this, &VD_Planet);
 				M_Rings.push_back(M);
@@ -400,34 +396,39 @@ class SolarSystem3D : public BaseProject {
 		DS_Su.init(this, &DSL_Planet, {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
 			{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
-			{2, TEXTURE, 0, &T_Su}
+			{2, TEXTURE, 0, &T_Su},
+			{3, TEXTURE, 0, &T_Su},
 		});
 
 		int n=0;
 		int r=0;
 		for (Planet *p : planets) {
+			Texture *nightTexture = T_Planets.at(n * 2 + 1);
+			if (nightTexture == nullptr) {
+				nightTexture = T_Planets.at(n * 2);
+			}
 			DS_Planets.at(n).init(this, &DSL_Planet, {
 				{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
 				{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
-				{2, TEXTURE, 0, &T_Planets.at(n)}
+				{2, TEXTURE, 0, T_Planets.at(n * 2)},
+				{3, TEXTURE, 0, nightTexture}
 			});
 			if(p->hasRing())
 			{
 				DS_Rings.at(r).init(this, &DSL_Planet, {
 					{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
 					{1, UNIFORM, sizeof(GlobalUniformBufferObject), nullptr},
-					{2, TEXTURE, 0, &T_Rings.at(r)}
+					{2, TEXTURE, 0, T_Rings.at(r)}
 				});
 				r++;
 			}
-			n++;
-		}
-
-		n=0;
-		for (DescriptorSet &DS : DS_Orbits) {
-			DS.init(this, &DSL_Orbit, {
+			DS_Orbits.at(n).init(this, &DSL_Orbit, {
 				{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-				{1, TEXTURE, 0, &T_Planets.at(n)}
+				{1, TEXTURE, 0, T_Planets.at(n * 2)}
+			});
+			DS_PlanetTexts.at(n).init(this, &DSL_Orbit, {
+				{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
+				{1, TEXTURE, 0, T_PlanetTexts.at(n)}
 			});
 			n++;
 		}
@@ -436,15 +437,6 @@ class SolarSystem3D : public BaseProject {
 			{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
 			{1, TEXTURE, 0, &T_Skybox}
 		});
-
-		n=0;
-		for (DescriptorSet &DS : DS_PlanetTexts) {
-			DS.init(this, &DSL_Orbit, {
-				{0, UNIFORM, sizeof(UniformBufferObject), nullptr},
-				{1, TEXTURE, 0, &T_PlanetTexts.at(n)}
-			});
-			n++;
-		}
 
 		txt.pipelinesAndDescriptorSetsInit();
 	}
@@ -477,15 +469,17 @@ class SolarSystem3D : public BaseProject {
 
 	void localCleanup() {
 		T_Su.cleanup();
-		for (Texture &T : T_Planets) {
-			T.cleanup();
+		for (Texture *T : T_Planets) {
+			if (T != nullptr) {
+				T->cleanup();
+			}
 		}
-		for (Texture &T : T_Rings) {
-			T.cleanup();
+		for (Texture *T : T_Rings) {
+			T->cleanup();
 		}
 		T_Skybox.cleanup();
-		for (Texture &T : T_PlanetTexts) {
-			T.cleanup();
+		for (Texture *T : T_PlanetTexts) {
+			T->cleanup();
 		}
 
 		M_Planet.cleanup();
@@ -696,7 +690,7 @@ class SolarSystem3D : public BaseProject {
 		static float damped = dampTime;
 
 		const float ROT_SPEED = glm::radians(120.0f);
-		const float MOVE_SPEED = 8.0f;
+		const float MOVE_SPEED = 2.0f;
 		float deltaT;
 		glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
 		bool fire;
@@ -759,7 +753,7 @@ class SolarSystem3D : public BaseProject {
 			damped += deltaT;
 		} else {
 			if (currAction == NoAction) {
-				float speed = 1 + 9 * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT));
+				float speed = 1 + 29 * (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT));
 				CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), -r.x * deltaT * ROT_SPEED, glm::vec3(CamDir[0])) * glm::mat4(CamDir));
 				CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), -r.y * deltaT * ROT_SPEED, glm::vec3(CamDir[1])) * glm::mat4(CamDir));
 				CamDir = glm::mat3(glm::rotate(glm::mat4(1.0f), r.z * deltaT * ROT_SPEED, glm::vec3(CamDir[2])) * glm::mat4(CamDir));
@@ -794,12 +788,11 @@ class SolarSystem3D : public BaseProject {
 		float distance;
 		int n=0;
 		for (Planet *p : planets) {
-			float planetScale = 1; //TODO slider scale
 			distance = raySphereIntersect(rayStart_world, rayDir_world, glm::vec3(
 					WorldM *
 					glm::translate(glm::mat4(1), p->getPosition()) *
-					glm::scale(glm::mat4(1), glm::vec3(planetScale)) * glm::vec4(0, 0, 0, 1)),
-					p->getSize().y * planetScale);
+					glm::vec4(0, 0, 0, 1)),
+					p->getSize().y);
 			if (distance >= 0 && distance < minDistance) {
 				found = n;
 				minDistance = distance;
