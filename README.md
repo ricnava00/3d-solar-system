@@ -1,30 +1,30 @@
-<style>
-
-section{ overflow: hidden; }
-
-</style>
-
 # 3D Solar System Viewer
 
-<section>
+<div style="overflow: hidden;">
 
 ![solar_system](https://i.ibb.co/f0vKMRp/solar-system-cover.jpg)
 
-</section>
+</div>
 
 ## About
 
 <div style="display: flex;">
 
-<img width="300" src="https://i.ibb.co/w734hKz/3d-solar-system-logo.jpg"/>
+<img align="left" width="300" src="https://i.ibb.co/w734hKz/3d-solar-system-logo.jpg"/>
 
-<section style = "margin: auto; text-align: justify;">
+<div style = "margin: auto; overflow: hidden;">
+
+<p align = "justify">
 
 **3D Solar System Viewer** is a Vulkan application born from the idea of creating a tool for educational purposes, able to perform what is usually impossible to do on a screen: allow the user to have an idea of ​​the scale of the planets, the distances and the movements they perform.  The large differences between planets and celestial motions prevent everything from being represented on the same spatial and temporal scale. To overcome this limitation, the user can decide to focus on particular planets and characteristics of the solar system.
 
-</section>
+</p>
 
 </div>
+
+</div>
+
+<br/>
 
 ## Usage
 The user can interact with the application through the following commands:
