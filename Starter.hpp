@@ -1805,7 +1805,7 @@ protected:
 		}
 	}
 		
-	void getSixAxis(float &deltaT, glm::vec3 &m, glm::vec3 &r, bool &fire, bool resetDeltaT = true) {
+	void getSixAxis(float &deltaT, glm::vec3 &m, glm::vec3 &r, bool &fire, bool resetDeltaT = true, bool enablePanning = true) {
 		static auto startTime = std::chrono::high_resolution_clock::now();
 		static float lastTime = 0.0f;
 		
@@ -1829,7 +1829,7 @@ protected:
 
 		const float MOUSE_RES = 10.0f;				
 		glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
-		if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+		if (enablePanning && glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 			r.y = -m_dx / MOUSE_RES;
 			r.x = -m_dy / MOUSE_RES;
 		}

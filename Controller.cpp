@@ -12,6 +12,11 @@ Controller::Controller(GLFWwindow *window, std::vector<Planet*> planets, std::ve
     this->zoomedPlanet = 2; // intialize to random value
 }
 
+void Controller::setWindowSize(int windowWidth, int windowHeight) {
+	this->windowWidth = windowWidth;
+	this->windowHeight = windowHeight;
+}
+
 void Controller::setZoomedPlanetIndex(int index){
 
     this->zoomedPlanet = index;
@@ -39,7 +44,7 @@ ControllerActions Controller::listenEvent() {
 			if (!pressedAnyButton) {
 				halfZoomedPlanet = tryClickPlanet(xpos/windowWidth*2-1,ypos/windowHeight*2-1);
 			} else {
-				//TODO disable panning
+				panningEnabled = false;
 			}
 		} else {
 			processMouseHeld(xpos / windowWidth * 2 - 1, ypos / windowHeight * 2 - 1);
@@ -57,6 +62,7 @@ ControllerActions Controller::listenEvent() {
 				}
 			}
 			halfZoomedPlanet = -2;
+			panningEnabled = true;
 		}
 	}
 	if (glfwGetKey(this->window, GLFW_KEY_SPACE) == GLFW_PRESS) {
@@ -121,4 +127,8 @@ Planet *Controller::getZoomedPlanet(){
 
 RenderType Controller::getRenderType() {
 	return this->renderType;
+}
+
+bool Controller::isPanningEnabled() {
+	return this->panningEnabled;
 }

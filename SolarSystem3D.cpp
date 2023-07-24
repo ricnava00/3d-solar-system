@@ -1,7 +1,6 @@
 /*
  * TODO
  *
- * Turn off paninng when scrolling
  * Earth night texture + restore rotation code
  * Earth reflection texture
  * Transparent buttons
@@ -703,7 +702,7 @@ class SolarSystem3D : public BaseProject {
 		bool fire;
 		bool update = false;
 
-		getSixAxis(deltaT, m, r, fire);
+		getSixAxis(deltaT, m, r, fire, true, controller->isPanningEnabled());
 
 		ControllerActions currAction = controller->listenEvent();
 		static ControllerActions lastAction = currAction;
