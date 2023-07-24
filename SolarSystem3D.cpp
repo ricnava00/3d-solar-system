@@ -697,7 +697,7 @@ class SolarSystem3D : public BaseProject {
 		static float damped = dampTime;
 
 		const float ROT_SPEED = glm::radians(120.0f);
-		const float MOVE_SPEED = 2.0f;
+		const float MOVE_SPEED = 8.0f;
 		float deltaT;
 		glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
 		bool fire;
